@@ -1,0 +1,112 @@
+{
+    "cosmos-sdk": {
+        "branch": "v0.45.0",
+        "description": ":chains: A Framework for Building High Value Public Blockchains :sparkles:",
+        "homepage": "https://cosmos.network/",
+        "owner": "cosmos",
+        "repo": "cosmos-sdk",
+        "rev": "b6c77e6c819f8a51166649eaef125d1bfb276f04",
+        "sha256": "09ns4yfxyfi7c7n5g69zv32m1rdssdl48c1akmv1y2vz6ayz4v02",
+        "type": "tarball",
+        "url": "https://github.com/cosmos/cosmos-sdk/archive/b6c77e6c819f8a51166649eaef125d1bfb276f04.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "dapptools": {
+        "branch": "master",
+        "description": "Dapp, Seth, Hevm, and more",
+        "homepage": "https://dapp.tools",
+        "owner": "dapphub",
+        "repo": "dapptools",
+        "rev": "fb9476ded759da44c449eb391cc67bfb0df61112",
+        "sha256": "1aan8mq7mbj90hfblha92wynvxyckrlwsnq7av4mqms574fmq842",
+        "type": "tarball",
+        "url": "https://github.com/dapphub/dapptools/archive/refs/tags/hevm/0.49.0.tar.gz",
+        "url_template": "https://github.com/dapphub/dapptools/archive/refs/tags/hevm/0.49.0.tar.gz",
+        "version": "hevm/0.49.0"
+    },
+    "gomod2nix": {
+        "branch": "master",
+        "description": "Convert applications using Go modules to Nix expressions",
+        "homepage": null,
+        "owner": "tweag",
+        "repo": "gomod2nix",
+        "rev": "fb910de8cc78c3e820d24f9b718614ea255af469",
+        "sha256": "0wdpdjy91a9g3zxf3588l2hyih11hjarhwil7v3z28dzgh9l7584",
+        "type": "tarball",
+        "url": "https://github.com/tweag/gomod2nix/archive/fb910de8cc78c3e820d24f9b718614ea255af469.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "gravity-bridge": {
+        "branch": "v2.0.0-cronos",
+        "description": "A CosmosSDK application for moving assets on and off of EVM based, POW chains",
+        "homepage": "",
+        "owner": "crypto-org-chain",
+        "repo": "gravity-bridge",
+        "rev": "e7f0bdfe6de37ab078193d2d7e18b8db48b477fb",
+        "sha256": "0hpl2dm9mz6ic41h4lc7k2s2prmzip1cd9bbfsy7624ycl1hkc07",
+        "type": "tarball",
+        "url": "https://github.com/crypto-org-chain/gravity-bridge/archive/e7f0bdfe6de37ab078193d2d7e18b8db48b477fb.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "niv": {
+        "branch": "master",
+        "description": "Easy dependency management for Nix projects",
+        "homepage": "https://github.com/nmattia/niv",
+        "owner": "nmattia",
+        "repo": "niv",
+        "rev": "e0ca65c81a2d7a4d82a189f1e23a48d59ad42070",
+        "sha256": "1pq9nh1d8nn3xvbdny8fafzw87mj7gsmp6pxkdl65w2g18rmcmzx",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/niv/archive/e0ca65c81a2d7a4d82a189f1e23a48d59ad42070.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs": {
+        "branch": "master",
+        "description": "Nix Packages collection",
+        "homepage": "",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ff29d2caa935a8e6216380dfcd7ee714fd8bd5bf",
+        "sha256": "0xm133zqg7knn8q6y7a5xd4jnqscxz9wzhf5rxmhs53qkvg7r4a4",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/ff29d2caa935a8e6216380dfcd7ee714fd8bd5bf.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "poetry2nix": {
+        "branch": "master",
+        "description": "Convert poetry projects to nix automagically [maintainer=@adisbladis] ",
+        "homepage": "",
+        "owner": "nix-community",
+        "repo": "poetry2nix",
+        "rev": "302a559a298ba39a0bec53f46479da9c5b2558cd",
+        "sha256": "0lqvkyw9qw4rmqd5cv4l67vvj7ngbqpg2jxanxrddn6npjmmlv0j",
+        "type": "tarball",
+        "url": "https://github.com/nix-community/poetry2nix/archive/302a559a298ba39a0bec53f46479da9c5b2558cd.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "pystarport": {
+        "branch": "main",
+        "description": "pystarport setup and run local devnet for cosmos like blockchains",
+        "homepage": null,
+        "owner": "crypto-com",
+        "repo": "pystarport",
+        "rev": "5a2732f7de8dc3db23e44db1cb332926741222c4",
+        "sha256": "0wqkkr7flhvmczw1y2y0v698ywnq6b6rfwhx58r1zg7nwyla32hm",
+        "type": "tarball",
+        "url": "https://github.com/crypto-com/pystarport/archive/5a2732f7de8dc3db23e44db1cb332926741222c4.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "version": "v0.2.3"
+    },
+    "rocksdb": {
+        "branch": "v6.29.5",
+        "description": "A library that provides an embeddable, persistent key-value store for fast storage.",
+        "homepage": "http://rocksdb.org",
+        "owner": "facebook",
+        "repo": "rocksdb",
+        "rev": "da11a59034584ea2d0911268b8136e5249d6b692",
+        "sha256": "1fr3lhkakjrplgmms07amrxfiasz1b4vl2rppgx50k8gcy0p1awv",
+        "type": "tarball",
+        "url": "https://github.com/facebook/rocksdb/archive/da11a59034584ea2d0911268b8136e5249d6b692.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    }
+}

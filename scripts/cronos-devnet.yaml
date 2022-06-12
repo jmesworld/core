@@ -1,0 +1,70 @@
+dotenv: .env
+jmes_8888-1:
+  cmd: cronosd
+  start-flags: "--trace"
+  app-config:
+    minimum-gas-prices: 0basetcro
+    index-events:
+      - ethereum_tx.ethereumTxHash
+    json-rpc:
+#      address: "0.0.0.0:{EVMRPC_PORT}"
+      address: "0.0.0.0:8545"
+#      ws-address: "0.0.0.0:{EVMRPC_PORT_WS}"
+      ws-address: "0.0.0.0:8546"
+      api: "eth,net,web3,debug,cronos"
+  validators:
+    - coins: 1000000000000000000stake,10000000000000000000000basetcro
+      staked: 1000000000000000000stake
+#      mnemonic: ${VALIDATOR1_MNEMONIC}
+      mnemonic: spatial horror glare planet damp border rapid table pluck era large bracket just cart eight normal pact impulse addict fatigue render guess vehicle poem
+    - coins: 1000000000000000000stake,10000000000000000000000basetcro
+      staked: 1000000000000000000stake
+#      mnemonic: ${VALIDATOR2_MNEMONIC}
+      mnemonic: april genre very monitor major enable ocean hello draft tray across another stick biology depth aim hamster view fly install sing pet order wash
+  accounts:
+    - name: community
+      coins: 10000000000000000000000basetcro
+#      mnemonic: ${COMMUNITY_MNEMONIC}
+      mnemonic: wash eye obey plastic much silk unveil floor mutual job setup kidney circle trouble truck help bomb can kangaroo toddler baby slam dinner agent
+    - name: signer1
+      coins: 20000000000000000000000basetcro
+#      mnemonic: ${SIGNER1_MNEMONIC}
+      mnemonic: sock horn armor culture salute wise donate ticket panic fury true nasty copy permit bread sadness aisle weather step wife polar toy bar cream
+    - name: signer2
+      coins: 30000000000000000000000basetcro
+#      mnemonic: ${SIGNER2_MNEMONIC}
+      mnemonic: route abstract eight tip father size hybrid depend drift rare rebuild wage plug base innocent dumb child vocal morning stick matrix olive deny under
+  genesis:
+    consensus_params:
+      block:
+        max_bytes: "1048576"
+        max_gas: "81500000"
+    app_state:
+      evm:
+        params:
+          evm_denom: basetcro
+          min_gas_multiplier: "0"
+      cronos:
+        params:
+#          cronos_admin: ${CRONOS_ADMIN}
+          cronos_admin: crc172sesxye0n0earvfcwzap5gmwh3f7wnrcgmzwx
+          # crc172sesxye0n0earvfcwzap5gmwh3f7wnrcgmzwx = blouse acoustic guard remove ready sketch maze survey high crumble sibling blame put air feed chaos denial merge swamp isolate victory rival glass actress
+          enable_auto_deployment: true
+#          ibc_cro_denom: ${IBC_CRO_DENOM} modify
+          ibc_cro_denom: ibc/6411AE2ADA1E73DB59DB151A8988F9B7D5E7E233D8414DB6817F8F1A01611F86
+      gov:
+        voting_params:
+          voting_period: "10s"
+        deposit_params:
+          max_deposit_period: "10s"
+          min_deposit:
+            - denom: "basetcro"
+              amount: "1"
+      transfer:
+        params:
+          receive_enabled: true
+          send_enabled: true
+      feemarket:
+        params:
+          no_base_fee: false
+          base_fee: "100000000000"
