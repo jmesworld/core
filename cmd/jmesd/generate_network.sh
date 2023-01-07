@@ -1,4 +1,5 @@
-./jmesd init --chain-id=jmes-888 dev_masternode && ./jmesd add-genesis-account jmes1wrrjk4xurqk2ukaxr4hlrmsfgprxm075gnwacn 1000000ujmes && ./jmesd gentx wallet 1000000ujmes --chain-id=jmes-888 && ./jmesd collect-gentxs
+#./jmesd keys add dev_masternode --recover && ./jmes --help
+echo "boost top desk keen unusual scene entire belt cargo protect subject donor front dose narrow fruit square despair chat crush visual reform river decorate" | ./jmesd keys add dev_masternode --recover || ./jmesd init --chain-id=jmes-888 dev_masternode && ./jmesd add-genesis-account jmes1wrrjk4xurqk2ukaxr4hlrmsfgprxm075gnwacn 1000000ujmes && ./jmesd gentx wallet 1000000ujmes --chain-id=jmes-888 && ./jmesd collect-gentxs
 #
 #- name: wallet
 #  type: local
