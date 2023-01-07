@@ -8,7 +8,7 @@ const (
 	AppName = "jmes"
 
 	// CoinType is the JMES coin type as defined in SLIP44 (https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
-	CoinType = 330
+	CoinType = 6280
 
 	// BondDenom staking denom
 	BondDenom = "ujmes"
