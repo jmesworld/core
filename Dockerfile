@@ -21,7 +21,7 @@ COPY . /code/
 # Install mimalloc
 RUN git clone --depth 1 https://github.com/microsoft/mimalloc; cd mimalloc; mkdir build; cd build; cmake ..; make -j$(nproc); make install
 ENV MIMALLOC_RESERVE_HUGE_OS_PAGES=4
-
+#
 # See https://github.com/CosmWasm/wasmvm/releases
 ADD https://github.com/CosmWasm/wasmvm/releases/download/${LIBWASMVM_VERSION}/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.aarch64.a
 ADD https://github.com/CosmWasm/wasmvm/releases/download/${LIBWASMVM_VERSION}/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.x86_64.a
@@ -42,6 +42,9 @@ RUN addgroup jmes \
 WORKDIR /jmes
 
 COPY --from=go-builder /code/build/jmesd /usr/local/bin/jmesd
+COPY --from=go-builder /code/cmd/jmesd/generate_network.sh /usr/local/bin/generate_network.sh
+
+RUN chmod +x /usr/local/bin/generate_network.sh
 
 USER jmes
 
