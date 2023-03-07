@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -665,8 +666,82 @@ func NewJmesApp(
 // Name returns the name of the App
 func (app *JmesApp) Name() string { return app.BaseApp.Name() }
 
+//const storeWinningGrantsKey = "winning_grants"
+
+// WinningGrant struct
+// from jmes-contract
+// TODO: import from cosmos-sdk
+//type WinningGrant struct {
+//	DAO sdk.AccAddress `json:"dao"`
+//	// could be sdk.Uint
+//	Amount sdk.Uint `json:"amount"`
+//	// from cw-utils, need a struct
+//	Expiration int64   `json:"expiration"`
+//	YesRatio   sdk.Dec `json:"yes_ratio"`
+//}
+
+var storeWinningGrantsKey = []byte("winning_grants")
+
 // BeginBlocker application updates every begin block
 func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	// Get current timestamp
+	now := ctx.BlockTime().Unix()
+
+	// get the contract address for the contract managing the winningGrants
+	//contractAddress := sdk.AccAddress(crypto.AddressHash([]byte("jmes168pnd5cyadhppfxvug4gchd52vuau5vkletxtfld7hdavwtgcu9sap2fsa")))
+	contractAddress, _ := sdk.AccAddressFromBech32("jmes1sf4wtl6h5sjlvvl6khz6eecly72fl9kg4c43arcmudrrnpxuvh0q7nkuj5")
+	app.Logger().Info("reading contractAddress", "contractAddress", contractAddress)
+
+	contractHistory := app.wasmKeeper.GetContractHistory(ctx, contractAddress)
+	app.Logger().Info("reading contractHistory", "contractHistory", contractHistory)
+
+	contractInfo := app.wasmKeeper.GetContractInfo(ctx, contractAddress)
+
+	app.Logger().Info("reading contractInfo", "contractInfo", contractInfo)
+	params := app.wasmKeeper.GetParams(ctx)
+	app.Logger().Info("reading params", "params", params)
+
+	app.Logger().Info("reading storeWinningGrantsKey", "storeWinningGrantsKey", storeWinningGrantsKey)
+	// Import the contract state
+	winningGrantsBytes := app.wasmKeeper.QueryRaw(ctx, contractAddress, storeWinningGrantsKey)
+	app.Logger().Info("reading winningGrantsBytes", "winningGrantsBytes", winningGrantsBytes)
+	// Nil above ^^^
+
+	if winningGrantsBytes == nil {
+		app.Logger().Error("winningGrantsBytes is nil")
+	} else {
+		// From the winningGrants, we need the amount to be created and the DAO value.
+
+		var winningGrants []distrtypes.WinningGrant
+		err := app.cdc.UnmarshalJSON(winningGrantsBytes, &winningGrants)
+		if err != nil {
+			panic(err)
+		}
+
+		// Order based by the yes_ratio value
+		// And remove any expired winningGrants
+		sort.Slice(winningGrants, func(i, j int) bool {
+			app.Logger().Info("winningGrants[i]", "winningGrants[i]", winningGrants[i])
+			app.Logger().Info("winningGrants[j]", "winningGrants[j]", winningGrants[j])
+			app.Logger().Info("winningGrants[i].DAO", "winningGrants[i]", winningGrants[i].DAO)
+			app.Logger().Info("winningGrants[i].Amount", "winningGrants[i]", winningGrants[i].Amount)
+			app.Logger().Info("winningGrants[i].YesRatio", "winningGrants[i]", winningGrants[i].YesRatio)
+			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration)
+			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration.AtTime)
+			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration.AtHeight)
+
+			if winningGrants[i].Expiration.AtTime < now {
+				app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
+
+				return false
+			}
+			return winningGrants[i].YesRatio.GT(winningGrants[j].YesRatio)
+		})
+
+		app.DistrKeeper.SetWinningGrants(ctx, winningGrants)
+	}
+
+	// Somehow have total map transferred to cosmos-sdk
 	return app.mm.BeginBlock(ctx, req)
 }
 
