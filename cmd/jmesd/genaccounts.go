@@ -136,6 +136,8 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				return fmt.Errorf("failed to get accounts from any: %w", err)
 			}
 
+			fmt.Println("Address is %s", addr.String())
+
 			if accs.Contains(addr) {
 				return fmt.Errorf("cannot add account at existing address %s", addr)
 			}
@@ -143,6 +145,20 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			// Add the new account to the set of genesis accounts and sanitize the
 			// accounts afterwards.
 			accs = append(accs, genAccount)
+			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
+				coinsVested, err := sdk.ParseCoinsNormalized("420000000ujmes")
+				vestedAddress, err := sdk.AccAddressFromBech32("jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm")
+				fmt.Println(err)
+				if err != nil {
+					return fmt.Errorf("failed to parse vesting amount: %w", err)
+				}
+				// Get current time
+				vestAccount := authvesting.NewContinuousVestingAccountRaw(authvesting.NewBaseVestingAccount(
+					authtypes.NewBaseAccount(vestedAddress, nil, 0, 0), coinsVested.Sort(), 1697433367), 1681881333)
+				accs = append(accs, vestAccount)
+				fmt.Println("Added vested account to accs")
+			}
+
 			accs = authtypes.SanitizeGenesisAccounts(accs)
 
 			genAccs, err := authtypes.PackAccounts(accs)
@@ -160,6 +176,16 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 
 			bankGenState := banktypes.GetGenesisStateFromAppState(cdc, appState)
 			bankGenState.Balances = append(bankGenState.Balances, balances)
+
+			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
+				coinsVested, err := sdk.ParseCoinsNormalized("420000000ujmes")
+				balanceVested := banktypes.Balance{Address: "jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm", Coins: coinsVested.Sort()}
+				if err != nil {
+					return fmt.Errorf("failed to parse vesting amount: %w", err)
+				}
+				bankGenState.Balances = append(bankGenState.Balances, balanceVested)
+				fmt.Println("Added vested balance to bankstate")
+			}
 			bankGenState.Balances = banktypes.SanitizeGenesisBalances(bankGenState.Balances)
 
 			bankGenStateBz, err := cdc.MarshalJSON(bankGenState)
