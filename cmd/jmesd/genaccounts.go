@@ -146,16 +146,20 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			// accounts afterwards.
 			accs = append(accs, genAccount)
 			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
-				coinsVested, err := sdk.ParseCoinsNormalized("420000000ujmes")
-				vestedAddress, err := sdk.AccAddressFromBech32("jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm")
+				coinsVesting, err := sdk.ParseCoinsNormalized("50000000000000ujmes")
+				coinsVested, err := sdk.ParseCoinsNormalized("0ujmes")
+				vestedAddress1, err := sdk.AccAddressFromBech32("jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm")
+				vestedAddress2, err := sdk.AccAddressFromBech32("jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9")
 				fmt.Println(err)
 				if err != nil {
 					return fmt.Errorf("failed to parse vesting amount: %w", err)
 				}
 				// Get current time
-				vestAccount := authvesting.NewContinuousVestingAccountRaw(authvesting.NewBaseVestingAccount(
-					authtypes.NewBaseAccount(vestedAddress, nil, 0, 0), coinsVested.Sort(), 1697433367), 1681881333)
-				accs = append(accs, vestAccount)
+				vestAccount1 := authvesting.NewForeverVestingAccount(authtypes.NewBaseAccountWithAddress(vestedAddress1), coinsVesting.Sort(), "0.05", coinsVested.Sort())
+				vestAccount2 := authvesting.NewForeverVestingAccount(authtypes.NewBaseAccountWithAddress(vestedAddress2), coinsVesting.Sort(), "0.05", coinsVested.Sort())
+
+				accs = append(accs, vestAccount1)
+				accs = append(accs, vestAccount2)
 				fmt.Println("Added vested account to accs")
 			}
 
@@ -178,12 +182,14 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			bankGenState.Balances = append(bankGenState.Balances, balances)
 
 			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
-				coinsVested, err := sdk.ParseCoinsNormalized("420000000ujmes")
-				balanceVested := banktypes.Balance{Address: "jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm", Coins: coinsVested.Sort()}
+				coinsVested, err := sdk.ParseCoinsNormalized("50000000000000ujmes")
 				if err != nil {
 					return fmt.Errorf("failed to parse vesting amount: %w", err)
 				}
-				bankGenState.Balances = append(bankGenState.Balances, balanceVested)
+				balanceVested1 := banktypes.Balance{Address: "jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm", Coins: coinsVested.Sort()}
+				balanceVested2 := banktypes.Balance{Address: "jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9", Coins: coinsVested.Sort()}
+				bankGenState.Balances = append(bankGenState.Balances, balanceVested1)
+				bankGenState.Balances = append(bankGenState.Balances, balanceVested2)
 				fmt.Println("Added vested balance to bankstate")
 			}
 			bankGenState.Balances = banktypes.SanitizeGenesisBalances(bankGenState.Balances)

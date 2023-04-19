@@ -68,7 +68,6 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithHomeDir(jmesapp.DefaultNodeHome).
-		// TODO: Was TERRA, ensure all is good here.
 		WithViper("JMES")
 
 	rootCmd := &cobra.Command{

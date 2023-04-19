@@ -1,6 +1,7 @@
 package app
 
 import (
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	jmesappparams "github.com/jmesworld/core/v2/app/params"
 	"io"
 	"net/http"
@@ -687,59 +688,93 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	// Get current timestamp
 	now := ctx.BlockTime().Unix()
 
-	// get the contract address for the contract managing the winningGrants
-	//contractAddress := sdk.AccAddress(crypto.AddressHash([]byte("jmes168pnd5cyadhppfxvug4gchd52vuau5vkletxtfld7hdavwtgcu9sap2fsa")))
-	contractAddress, _ := sdk.AccAddressFromBech32("jmes1sf4wtl6h5sjlvvl6khz6eecly72fl9kg4c43arcmudrrnpxuvh0q7nkuj5")
-	app.Logger().Info("reading contractAddress", "contractAddress", contractAddress)
+	app.Logger().Info("BeginBlocker", "now", now)
+	app.Logger().Info("BeginBlocker", "blockHeight", ctx.BlockHeight())
+	// We read contract address from config
+	//configGovernanceContractAddress := app.DistrKeeper.config.GetString("governance_contract_address");
 
-	contractHistory := app.wasmKeeper.GetContractHistory(ctx, contractAddress)
-	app.Logger().Info("reading contractHistory", "contractHistory", contractHistory)
+	// Read delegator_withdraw_infos from config
+	//info2 := app.DistrKeeper.(ctx)
 
-	contractInfo := app.wasmKeeper.GetContractInfo(ctx, contractAddress)
+	governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
 
-	app.Logger().Info("reading contractInfo", "contractInfo", contractInfo)
-	params := app.wasmKeeper.GetParams(ctx)
-	app.Logger().Info("reading params", "params", params)
+	if governanceContractAddress == "" {
+		wasmInfo := app.wasmKeeper.GetParams(ctx)
 
-	app.Logger().Info("reading storeWinningGrantsKey", "storeWinningGrantsKey", storeWinningGrantsKey)
-	// Import the contract state
-	winningGrantsBytes := app.wasmKeeper.QueryRaw(ctx, contractAddress, storeWinningGrantsKey)
-	app.Logger().Info("reading winningGrantsBytes", "winningGrantsBytes", winningGrantsBytes)
-	// Nil above ^^^
-
-	if winningGrantsBytes == nil {
-		app.Logger().Error("winningGrantsBytes is nil")
+		app.Logger().Info("BeginBlocker", "wasmInfo", wasmInfo)
+		app.Logger().Info("BeginBlocker", "governanceContractAddress", "nil")
 	} else {
-		// From the winningGrants, we need the amount to be created and the DAO value.
 
-		var winningGrants []distrtypes.WinningGrant
-		err := app.cdc.UnmarshalJSON(winningGrantsBytes, &winningGrants)
+		app.Logger().Info("BeginBlocker", "governanceContractAddress", governanceContractAddress)
+		info := app.DistrKeeper.ExportGenesis(ctx)
+		app.Logger().Info("BeginBlocker", "Genesis", info)
+
+		// Test if governanceContractAddress is a valid crypto.AddressHash instance
+
+		contractAddress2, err := sdk.AccAddressFromBech32(governanceContractAddress)
 		if err != nil {
+			err = sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid governanceContractAddress address: %s", err)
 			panic(err)
 		}
+		app.Logger().Info("BeginBlocker", "contractAddress2", contractAddress2)
 
-		// Order based by the yes_ratio value
-		// And remove any expired winningGrants
-		sort.Slice(winningGrants, func(i, j int) bool {
-			app.Logger().Info("winningGrants[i]", "winningGrants[i]", winningGrants[i])
-			app.Logger().Info("winningGrants[j]", "winningGrants[j]", winningGrants[j])
-			app.Logger().Info("winningGrants[i].DAO", "winningGrants[i]", winningGrants[i].DAO)
-			app.Logger().Info("winningGrants[i].Amount", "winningGrants[i]", winningGrants[i].Amount)
-			app.Logger().Info("winningGrants[i].YesRatio", "winningGrants[i]", winningGrants[i].YesRatio)
-			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration)
-			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration.AtTime)
-			app.Logger().Info("winningGrants[i].Expiration", "winningGrants[i]", winningGrants[i].Expiration.AtHeight)
+		// get the contract address for the contract managing the winningGrants
+		contractAddress, _ := sdk.AccAddressFromBech32("jmes1sf4wtl6h5sjlvvl6khz6eecly72fl9kg4c43arcmudrrnpxuvh0q7nkuj5")
+		app.Logger().Info("reading contractAddress", "contractAddress", contractAddress)
 
-			if winningGrants[i].Expiration.AtTime < now {
-				app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
+		contractHistory := app.wasmKeeper.GetContractHistory(ctx, contractAddress)
+		app.Logger().Info("reading contractHistory", "contractHistory", contractHistory)
 
-				return false
+		contractInfo := app.wasmKeeper.GetContractInfo(ctx, contractAddress)
+
+		app.Logger().Info("reading contractInfo", "contractInfo", contractInfo)
+		params := app.wasmKeeper.GetParams(ctx)
+		app.Logger().Info("reading params", "params", params)
+
+		app.Logger().Info("reading storeWinningGrantsKey", "storeWinningGrantsKey", storeWinningGrantsKey)
+		// Import the contract state
+		winningGrantsBytes := app.wasmKeeper.QueryRaw(ctx, contractAddress, storeWinningGrantsKey)
+		app.Logger().Info("reading winningGrantsBytes", "winningGrantsBytes", winningGrantsBytes)
+		// Nil above ^^^
+
+		if winningGrantsBytes == nil {
+			app.Logger().Error("winningGrantsBytes is nil")
+		} else {
+			// From the winningGrants, we need the amount to be created and the DAO value.
+
+			var winningGrants []distrtypes.WinningGrant
+			err := app.cdc.UnmarshalJSON(winningGrantsBytes, &winningGrants)
+			if err != nil {
+				panic(err)
 			}
-			return winningGrants[i].YesRatio.GT(winningGrants[j].YesRatio)
-		})
 
-		app.DistrKeeper.SetWinningGrants(ctx, winningGrants)
+			// Order based by the yes_ratio value
+			// And remove any expired winningGrants
+			sort.Slice(winningGrants, func(i, j int) bool {
+				app.Logger().Info("winningGrants[i]", "winningGrants[i]", winningGrants[i])
+				app.Logger().Info("winningGrants[j]", "winningGrants[j]", winningGrants[j])
+				app.Logger().Info("winningGrants[i].DAO", "winningGrants[i]", winningGrants[i].DAO)
+				app.Logger().Info("winningGrants[i].Amount", "winningGrants[i]", winningGrants[i].Amount)
+				app.Logger().Info("winningGrants[i].YesRatio", "winningGrants[i]", winningGrants[i].YesRatio)
+				app.Logger().Info("winningGrants[i].ExpireAtHeight", "winningGrants[i]", winningGrants[i].ExpireAtHeight)
+
+				if winningGrants[i].ExpireAtHeight.Uint64() < uint64(app.LastBlockHeight()) {
+					app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
+
+					return false
+				}
+				return winningGrants[i].YesRatio.GT(winningGrants[j].YesRatio)
+			})
+
+			app.DistrKeeper.SetWinningGrants(ctx, winningGrants)
+			app.Logger().Info("fetch back", app.DistrKeeper.GetWinningGrants(ctx))
+		}
 	}
+
+	//app.Logger().Info("BeginBlocker", "delegator_withdraw_infos", info)
+	//app.Logger().Info("BeginBlocker", "delegator_withdraw_infos", info2)
+
+	// Throw error if governance contract address is not set
 
 	// Somehow have total map transferred to cosmos-sdk
 	return app.mm.BeginBlock(ctx, req)

@@ -4,7 +4,7 @@ Official Go implementation of the JMESWorld protocol
 
 ## Build and run locally
 
--  `cd cmd/ && go build` - Will build `jmesd` daemon.
+-  `cd cmd/jmesd && go build` - Will build `jmesd` daemon.
 
 ## Build dockerfile 
 
