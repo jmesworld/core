@@ -136,8 +136,6 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				return fmt.Errorf("failed to get accounts from any: %w", err)
 			}
 
-			fmt.Println("Address is %s", addr.String())
-
 			if accs.Contains(addr) {
 				return fmt.Errorf("cannot add account at existing address %s", addr)
 			}
@@ -147,10 +145,22 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			accs = append(accs, genAccount)
 			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
 				coinsVesting, err := sdk.ParseCoinsNormalized("50000000000000ujmes")
+				if err != nil {
+					return fmt.Errorf("failed to parse coinsVesting amount: %w", err)
+				}
 				coinsVested, err := sdk.ParseCoinsNormalized("0ujmes")
+				if err != nil {
+					return fmt.Errorf("failed to parse coinsVested amount: %w", err)
+				}
 				vestedAddress1, err := sdk.AccAddressFromBech32("jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm")
+				if err != nil {
+					return fmt.Errorf("failed to create vestedAddress1: %w", err)
+				}
 				vestedAddress2, err := sdk.AccAddressFromBech32("jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9")
-				fmt.Println(err)
+				if err != nil {
+					return fmt.Errorf("failed to create vestedAddress2: %w", err)
+				}
+
 				if err != nil {
 					return fmt.Errorf("failed to parse vesting amount: %w", err)
 				}
@@ -160,7 +170,6 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 
 				accs = append(accs, vestAccount1)
 				accs = append(accs, vestAccount2)
-				fmt.Println("Added vested account to accs")
 			}
 
 			accs = authtypes.SanitizeGenesisAccounts(accs)
@@ -190,7 +199,6 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				balanceVested2 := banktypes.Balance{Address: "jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9", Coins: coinsVested.Sort()}
 				bankGenState.Balances = append(bankGenState.Balances, balanceVested1)
 				bankGenState.Balances = append(bankGenState.Balances, balanceVested2)
-				fmt.Println("Added vested balance to bankstate")
 			}
 			bankGenState.Balances = banktypes.SanitizeGenesisBalances(bankGenState.Balances)
 

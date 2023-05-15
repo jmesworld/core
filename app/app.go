@@ -758,7 +758,10 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 				app.Logger().Info("winningGrants[i].YesRatio", "winningGrants[i]", winningGrants[i].YesRatio)
 				app.Logger().Info("winningGrants[i].ExpireAtHeight", "winningGrants[i]", winningGrants[i].ExpireAtHeight)
 
-				if winningGrants[i].ExpireAtHeight.Uint64() < uint64(app.LastBlockHeight()) {
+				expireAtHeight := winningGrants[i].ExpireAtHeight.BigInt().Int64()
+				lastBlockHeight := app.LastBlockHeight()
+
+				if expireAtHeight < lastBlockHeight {
 					app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
 
 					return false
