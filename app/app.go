@@ -697,51 +697,25 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	//info2 := app.DistrKeeper.(ctx)
 
 	governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
-
 	if governanceContractAddress == "" {
-		wasmInfo := app.wasmKeeper.GetParams(ctx)
-
-		app.Logger().Info("BeginBlocker", "wasmInfo", wasmInfo)
 		app.Logger().Info("BeginBlocker", "governanceContractAddress", "nil")
 	} else {
 
 		app.Logger().Info("BeginBlocker", "governanceContractAddress", governanceContractAddress)
-		info := app.DistrKeeper.ExportGenesis(ctx)
-		app.Logger().Info("BeginBlocker", "Genesis", info)
-
-		// Test if governanceContractAddress is a valid crypto.AddressHash instance
-
-		contractAddress2, err := sdk.AccAddressFromBech32(governanceContractAddress)
+		// get the contract address for the contract managing the winningGrants
+		contractAddress, err := sdk.AccAddressFromBech32(governanceContractAddress)
 		if err != nil {
 			err = sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid governanceContractAddress address: %s", err)
 			panic(err)
 		}
-		app.Logger().Info("BeginBlocker", "contractAddress2", contractAddress2)
-
-		// get the contract address for the contract managing the winningGrants
-		contractAddress, _ := sdk.AccAddressFromBech32("jmes1sf4wtl6h5sjlvvl6khz6eecly72fl9kg4c43arcmudrrnpxuvh0q7nkuj5")
-		app.Logger().Info("reading contractAddress", "contractAddress", contractAddress)
-
-		contractHistory := app.wasmKeeper.GetContractHistory(ctx, contractAddress)
-		app.Logger().Info("reading contractHistory", "contractHistory", contractHistory)
-
-		contractInfo := app.wasmKeeper.GetContractInfo(ctx, contractAddress)
-
-		app.Logger().Info("reading contractInfo", "contractInfo", contractInfo)
-		params := app.wasmKeeper.GetParams(ctx)
-		app.Logger().Info("reading params", "params", params)
-
-		app.Logger().Info("reading storeWinningGrantsKey", "storeWinningGrantsKey", storeWinningGrantsKey)
 		// Import the contract state
 		winningGrantsBytes := app.wasmKeeper.QueryRaw(ctx, contractAddress, storeWinningGrantsKey)
 		app.Logger().Info("reading winningGrantsBytes", "winningGrantsBytes", winningGrantsBytes)
-		// Nil above ^^^
 
 		if winningGrantsBytes == nil {
 			app.Logger().Error("winningGrantsBytes is nil")
 		} else {
 			// From the winningGrants, we need the amount to be created and the DAO value.
-
 			var winningGrants []distrtypes.WinningGrant
 			err := app.cdc.UnmarshalJSON(winningGrantsBytes, &winningGrants)
 			if err != nil {
@@ -770,16 +744,9 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 			})
 
 			app.DistrKeeper.SetWinningGrants(ctx, winningGrants)
-			app.Logger().Info("fetch back", app.DistrKeeper.GetWinningGrants(ctx))
 		}
 	}
 
-	//app.Logger().Info("BeginBlocker", "delegator_withdraw_infos", info)
-	//app.Logger().Info("BeginBlocker", "delegator_withdraw_infos", info2)
-
-	// Throw error if governance contract address is not set
-
-	// Somehow have total map transferred to cosmos-sdk
 	return app.mm.BeginBlock(ctx, req)
 }
 
