@@ -3,6 +3,7 @@ package ante
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,6 +12,7 @@ import (
 	cosmosante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 var (
@@ -137,6 +139,26 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 			}
 		}
 	}
+
+	// Check if we are trying to send bujmes
+	//FIXME: sigverify is not the best place to do this...
+	messages := tx.GetMsgs()
+	for _, msg := range messages {
+		if strings.HasPrefix(sdk.MsgTypeURL(msg), "/cosmos.bank.v1beta1.MsgSend") {
+			msgSend, ok := msg.(*banktypes.MsgSend)
+			// We prevent sending bujmes
+			if ok {
+				for _, amount := range msgSend.Amount {
+					if amount.Denom == "bujmes" {
+						return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "cannot transfer bujmes")
+					}
+				}
+			}
+
+		}
+	}
+
+	fmt.Printf("Core.SigVerificationDecorator.AnteHandle: next\n")
 
 	return next(ctx, tx, simulate)
 }
