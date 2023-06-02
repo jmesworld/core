@@ -26,6 +26,13 @@ const (
 	flagVestingAmt   = "vesting-amount"
 )
 
+type ForeverVestingAccounts struct {
+	Address          string
+	CoinsVesting     string
+	UnlockPercentage string
+	CoinsVested      string
+}
+
 // AddGenesisAccountCmd returns add-genesis-account cobra Command.
 func AddGenesisAccountCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
@@ -143,33 +150,60 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			// Add the new account to the set of genesis accounts and sanitize the
 			// accounts afterwards.
 			accs = append(accs, genAccount)
-			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
-				coinsVesting, err := sdk.ParseCoinsNormalized("50000000000000ujmes")
+
+			vestingAddresses := []ForeverVestingAccounts{
+				{
+					Address:          "jmes1nm9rsr3yeuvvsdv3w2r7kqfjfa90tjwwd775rt",
+					CoinsVesting:     "17000000000000ujmes",
+					CoinsVested:      "0ujmes",
+					UnlockPercentage: "0.017",
+				},
+				{
+					Address:          "jmes1v6nnc8f9jjpw309xm6zhj968vscgvld04gmhq0",
+					CoinsVesting:     "17000000000000ujmes",
+					CoinsVested:      "0ujmes",
+					UnlockPercentage: "0.017",
+				},
+				{
+					Address:          "jmes12h9pe8v2pmqzec0lx8z5d6wsxkuell02nyzt70",
+					CoinsVesting:     "16000000000000ujmes",
+					CoinsVested:      "0ujmes",
+					UnlockPercentage: "0.016",
+				},
+				{
+					Address:          "jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9",
+					CoinsVesting:     "45000000000000ujmes",
+					CoinsVested:      "0ujmes",
+					UnlockPercentage: "0.045",
+				},
+				{
+					Address:          "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y",
+					CoinsVesting:     "5000000000000ujmes",
+					CoinsVested:      "0ujmes",
+					UnlockPercentage: "0.005",
+				},
+			}
+
+			for _, aa := range vestingAddresses {
+				coinsVesting, err := sdk.ParseCoinsNormalized(aa.CoinsVesting)
 				if err != nil {
-					return fmt.Errorf("failed to parse coinsVesting amount: %w", err)
+					fmt.Errorf("failed to parse coinsVesting amount: %w", err)
+					panic(err)
 				}
-				coinsVested, err := sdk.ParseCoinsNormalized("0ujmes")
+				coinsVested, err := sdk.ParseCoinsNormalized(aa.CoinsVested)
 				if err != nil {
-					return fmt.Errorf("failed to parse coinsVested amount: %w", err)
-				}
-				vestedAddress1, err := sdk.AccAddressFromBech32("jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm")
-				if err != nil {
-					return fmt.Errorf("failed to create vestedAddress1: %w", err)
-				}
-				vestedAddress2, err := sdk.AccAddressFromBech32("jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9")
-				if err != nil {
-					return fmt.Errorf("failed to create vestedAddress2: %w", err)
+					fmt.Errorf("failed to parse coinsVested amount: %w", err)
+					panic(err)
 				}
 
+				vestedAddress, err := sdk.AccAddressFromBech32(aa.Address)
 				if err != nil {
-					return fmt.Errorf("failed to parse vesting amount: %w", err)
+					fmt.Errorf("failed to create vestedAddress: %w", err)
+					panic(err)
 				}
-				// Get current time
-				vestAccount1 := authvesting.NewForeverVestingAccount(authtypes.NewBaseAccountWithAddress(vestedAddress1), coinsVesting.Sort(), "0.05", coinsVested.Sort())
-				vestAccount2 := authvesting.NewForeverVestingAccount(authtypes.NewBaseAccountWithAddress(vestedAddress2), coinsVesting.Sort(), "0.05", coinsVested.Sort())
 
-				accs = append(accs, vestAccount1)
-				accs = append(accs, vestAccount2)
+				vestAccount := authvesting.NewForeverVestingAccount(authtypes.NewBaseAccountWithAddress(vestedAddress), coinsVesting.Sort(), aa.UnlockPercentage, coinsVested.Sort())
+				accs = append(accs, vestAccount)
 			}
 
 			accs = authtypes.SanitizeGenesisAccounts(accs)
@@ -190,16 +224,20 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			bankGenState := banktypes.GetGenesisStateFromAppState(cdc, appState)
 			bankGenState.Balances = append(bankGenState.Balances, balances)
 
-			if addr.String() == "jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y" {
-				coinsVested, err := sdk.ParseCoinsNormalized("50000000000000ujmes")
+			for _, aa := range vestingAddresses {
+				totalVestingCoins, err := sdk.ParseCoinsNormalized(aa.CoinsVesting)
 				if err != nil {
-					return fmt.Errorf("failed to parse vesting amount: %w", err)
+					fmt.Errorf("failed to parse coinsVested amount: %w", err)
+					panic(err)
 				}
-				balanceVested1 := banktypes.Balance{Address: "jmes178e2f74xl8dza4cyg27mhwtn78d24cl8sz2ugm", Coins: coinsVested.Sort()}
-				balanceVested2 := banktypes.Balance{Address: "jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9", Coins: coinsVested.Sort()}
-				bankGenState.Balances = append(bankGenState.Balances, balanceVested1)
-				bankGenState.Balances = append(bankGenState.Balances, balanceVested2)
+
+				// Add equivalent bujmes
+				totalVestingCoins = append(totalVestingCoins, sdk.NewCoin("bujmes", totalVestingCoins.AmountOf("ujmes")))
+
+				balanceVested := banktypes.Balance{Address: aa.Address, Coins: totalVestingCoins.Sort()}
+				bankGenState.Balances = append(bankGenState.Balances, balanceVested)
 			}
+
 			bankGenState.Balances = banktypes.SanitizeGenesisBalances(bankGenState.Balances)
 
 			bankGenStateBz, err := cdc.MarshalJSON(bankGenState)
