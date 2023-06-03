@@ -1156,10 +1156,10 @@ github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht
 github.com/jmespath/go-jmespath v0.3.0/go.mod h1:9QtRXoHjLGCJ5IBSaohpXITPlowMeeYCZ7fLUTSywik=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
-github.com/jmesworld/cosmos-sdk v0.46.0-jmes.1 h1:K28oy2KrLe2wVjz/oXQ228jUgkwwUiVC4rblvlZ3HEo=
-github.com/jmesworld/cosmos-sdk v0.46.0-jmes.1/go.mod h1:6URcI2HbI+wjaMJmRBuHXBQopqC//BEt+SbPienUYOg=
-github.com/jmesworld/tendermint v0.34.21-jmes.1 h1:AzwSZ4/h5dJ5dwA6HHgHR01C9V1kZi2rf/QBfgHaKr8=
-github.com/jmesworld/tendermint v0.34.21-jmes.1/go.mod h1:XDvfg6U7grcFTDx7VkzxnhazQ/bspGJAn4DZ6DcLLjQ=
+github.com/jmesworld/cosmos-sdk v0.0.99-alpha.5 h1:jOi9fRRlj0nrw1feKkSUqI1BeP65U9OHrZjGpk8G/i4=
+github.com/jmesworld/cosmos-sdk v0.0.99-alpha.5/go.mod h1:6URcI2HbI+wjaMJmRBuHXBQopqC//BEt+SbPienUYOg=
+github.com/jmesworld/tendermint v0.99.0-alpha.2 h1:BSX6KGCNcHnm0nYlc9M8NCRrawZsi2UVYirGlFiI9j4=
+github.com/jmesworld/tendermint v0.99.0-alpha.2/go.mod h1:XDvfg6U7grcFTDx7VkzxnhazQ/bspGJAn4DZ6DcLLjQ=
 github.com/jmhodges/levigo v1.0.0 h1:q5EC36kV79HWeTBWsod3mG11EgStG3qArTKcvlksN1U=
 github.com/jmhodges/levigo v1.0.0/go.mod h1:Q6Qx+uH3RAqyK4rFQroq9RL7mdkABMcfhEI+nNuzMJQ=
 github.com/jmoiron/sqlx v1.2.0/go.mod h1:1FEQNm3xlJgrMD+FBdI9+xvCksHtbpVBBw5dYhBSsks=
