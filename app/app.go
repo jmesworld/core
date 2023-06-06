@@ -688,8 +688,7 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	// Get current timestamp
 	now := ctx.BlockTime().Unix()
 
-	app.Logger().Info("BeginBlocker", "now", now)
-	app.Logger().Info("BeginBlocker", "blockHeight", ctx.BlockHeight())
+	app.Logger().Info("BeginBlocker", "now", now, "blockHeight", ctx.BlockHeight())
 	// We read contract address from config
 	//configGovernanceContractAddress := app.DistrKeeper.config.GetString("governance_contract_address");
 
@@ -697,11 +696,9 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	//info2 := app.DistrKeeper.(ctx)
 
 	governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
-	if governanceContractAddress == "" {
-		app.Logger().Info("BeginBlocker", "governanceContractAddress", "nil")
-	} else {
+	app.Logger().Info("BeginBlocker", "now", now, "blockHeight", ctx.BlockHeight(), "governanceContractAddress", governanceContractAddress)
 
-		app.Logger().Info("BeginBlocker", "governanceContractAddress", governanceContractAddress)
+	if governanceContractAddress != "" {
 		// get the contract address for the contract managing the winningGrants
 		contractAddress, err := sdk.AccAddressFromBech32(governanceContractAddress)
 		if err != nil {

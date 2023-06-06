@@ -158,8 +158,6 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 	}
 
-	fmt.Printf("Core.SigVerificationDecorator.AnteHandle: next\n")
-
 	return next(ctx, tx, simulate)
 }
 
