@@ -667,20 +667,6 @@ func NewJmesApp(
 // Name returns the name of the App
 func (app *JmesApp) Name() string { return app.BaseApp.Name() }
 
-//const storeWinningGrantsKey = "winning_grants"
-
-// WinningGrant struct
-// from jmes-contract
-// TODO: import from cosmos-sdk
-//type WinningGrant struct {
-//	DAO sdk.AccAddress `json:"dao"`
-//	// could be sdk.Uint
-//	Amount sdk.Uint `json:"amount"`
-//	// from cw-utils, need a struct
-//	Expiration int64   `json:"expiration"`
-//	YesRatio   sdk.Dec `json:"yes_ratio"`
-//}
-
 var storeWinningGrantsKey = []byte("winning_grants")
 
 // BeginBlocker application updates every begin block
@@ -690,12 +676,18 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 
 	app.Logger().Info("BeginBlocker", "now", now, "blockHeight", ctx.BlockHeight())
 	// We read contract address from config
-	//configGovernanceContractAddress := app.DistrKeeper.config.GetString("governance_contract_address");
+	//configGovernanceContractAddress, _ := app.ParamsKeeper.GetSubspace("distr")
 
+	//configGovernanceContractAddress := app.DistrKeeper //.GetString("governance_contract_address");
+
+	//fmt.Printf("configGovernanceContractAddress: %s\n", configGovernanceContractAddress)
+	//panic("test")
 	// Read delegator_withdraw_infos from config
 	//info2 := app.DistrKeeper.(ctx)
 
-	governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
+	//governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
+	governanceContractAddress := ""
+
 	app.Logger().Info("BeginBlocker", "now", now, "blockHeight", ctx.BlockHeight(), "governanceContractAddress", governanceContractAddress)
 
 	if governanceContractAddress != "" {
@@ -714,6 +706,11 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 		} else {
 			// From the winningGrants, we need the amount to be created and the DAO value.
 			var winningGrants []distrtypes.WinningGrant
+
+			//fmt.Printf("winningGrantsBytes: %s\n", winningGrantsBytes)
+			//winningGrantsString := "[{\"dao\":\"jmes1lzs0l3h9q7003ugspe8x8ueug9j6n4hau5pyha\",\"amount\":\"100\",\"expire_at_height\":\"260010\",\"yes_ratio\":\"0.85\",\"proposal_id\":\"991\"},{\"dao\":\"jmes1cs0sav8qwsdzqt8ep2wfp5h830c6heq84pxmjq\",\"amount\":\"200\",\"expire_at_height\":\"260020\",\"yes_ratio\":\"0.9\",\"proposal_id\":\"992\"},{\"dao\":\"jmes1wcf03kqs6klcggkf55nynueggjn8hxw47gtzra\",\"amount\":\"300\",\"expire_at_height\":\"260000\",\"yes_ratio\":\"0.95\",\"proposal_id\":\"993\"}]"
+			//winningGrantsBytes := []byte(winningGrantsString)
+
 			err := app.cdc.UnmarshalJSON(winningGrantsBytes, &winningGrants)
 			if err != nil {
 				panic(err)
@@ -729,10 +726,10 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 				app.Logger().Info("winningGrants[i].YesRatio", "winningGrants[i]", winningGrants[i].YesRatio)
 				app.Logger().Info("winningGrants[i].ExpireAtHeight", "winningGrants[i]", winningGrants[i].ExpireAtHeight)
 
-				expireAtHeight := winningGrants[i].ExpireAtHeight.BigInt().Int64()
 				lastBlockHeight := app.LastBlockHeight()
+				expireAtHeight := winningGrants[i].ExpireAtHeight
 
-				if expireAtHeight < lastBlockHeight {
+				if expireAtHeight.LT(sdk.NewInt(lastBlockHeight)) {
 					app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
 
 					return false
