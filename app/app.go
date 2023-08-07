@@ -729,7 +729,7 @@ func (app *JmesApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 				lastBlockHeight := app.LastBlockHeight()
 				expireAtHeight := winningGrants[i].ExpireAtHeight
 
-				if expireAtHeight.LT(sdk.NewInt(lastBlockHeight)) {
+				if expireAtHeight.LT(sdk.Uint(sdk.NewInt(lastBlockHeight))) {
 					app.Logger().Info("winningGrants expired", "winningGrant", winningGrants[i], " time < now", now)
 
 					return false
