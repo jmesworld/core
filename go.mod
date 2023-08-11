@@ -129,10 +129,12 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
+	github.com/cosmos/cosmos-sdk/tests v0.0.0-20230809160419-3f2a9d8cbafb
+
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/jmesworld/cosmos-sdk v0.0.99-alpha.5
+	github.com/cosmos/cosmos-sdk => /home/rehan/cosmos-sdk
 	github.com/cosmos/iavl => github.com/cosmos/iavl v0.17.3
 	github.com/cosmos/ledger-cosmos-go => github.com/terra-money/ledger-terra-go v0.11.2
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
