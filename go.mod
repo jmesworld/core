@@ -134,7 +134,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/jmesworld/cosmos-sdk v0.0.99-alpha.5
+	github.com/cosmos/cosmos-sdk => github.com/jmesworld/cosmos-sdk 3b509c187e1643757f5ef8a0b5ae3decca0c7719
 	github.com/cosmos/iavl => github.com/cosmos/iavl v0.17.3
 	github.com/cosmos/ledger-cosmos-go => github.com/terra-money/ledger-terra-go v0.11.2
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
