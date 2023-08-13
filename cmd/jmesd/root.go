@@ -2,18 +2,12 @@ package main
 
 import (
 	"errors"
+	"github.com/ignite/cli/app/params"
+	"github.com/ignite/cli/app/wasmconfig"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cast"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	tmcli "github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
-
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
@@ -31,10 +25,9 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
-
-	jmesapp "github.com/jmesworld/core/v2/app"
-	"github.com/jmesworld/core/v2/app/params"
-	"github.com/jmesworld/core/v2/app/wasmconfig"
+	"github.com/spf13/cast"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // missing flag from cosmos-sdk

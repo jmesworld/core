@@ -2,15 +2,16 @@ package app
 
 import (
 	"encoding/json"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtype "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	icacontrollertypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/controller/types"
-	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
-	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+	icacontrollertypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller/types"
+	icatypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/genesis/types"
+	icahosttypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/host/types"
+	icatype "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/types"
 )
 
 // GenesisState - The genesis state of the blockchain is represented here as a map of raw json
@@ -41,9 +42,9 @@ func (genState GenesisState) ConfigureBondDenom(cdc codec.JSONCodec, bondDenom s
 	genState[crisistypes.ModuleName] = cdc.MustMarshalJSON(&crisisGenState)
 
 	var govGenState govtypes.GenesisState
-	cdc.MustUnmarshalJSON(genState[govtypes.ModuleName], &govGenState)
+	cdc.MustUnmarshalJSON(genState[govtype.ModuleName], &govGenState)
 	govGenState.DepositParams.MinDeposit[0].Denom = bondDenom
-	genState[govtypes.ModuleName] = cdc.MustMarshalJSON(&govGenState)
+	genState[govtype.ModuleName] = cdc.MustMarshalJSON(&govGenState)
 
 	var mintGenState minttypes.GenesisState
 	cdc.MustUnmarshalJSON(genState[minttypes.ModuleName], &mintGenState)
@@ -91,10 +92,10 @@ func (genState GenesisState) ConfigureICA(cdc codec.JSONCodec) GenesisState {
 	}
 
 	var icaGenState icatypes.GenesisState
-	cdc.MustUnmarshalJSON(genState[icatypes.ModuleName], &icaGenState)
+	cdc.MustUnmarshalJSON(genState[icatype.ModuleName], &icaGenState)
 	icaGenState.ControllerGenesisState.Params = controllerParams
 	icaGenState.HostGenesisState.Params = hostParams
-	genState[icatypes.ModuleName] = cdc.MustMarshalJSON(&icaGenState)
+	genState[icatype.ModuleName] = cdc.MustMarshalJSON(&icaGenState)
 
 	return genState
 }
