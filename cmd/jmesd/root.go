@@ -1,7 +1,11 @@
 package main
 
 import (
+	"cosmossdk.io/log"
+	"cosmossdk.io/tools/rosetta/cmd"
 	"errors"
+	db2 "github.com/cometbft/cometbft-db"
+	"github.com/ignite/cli/app"
 	"github.com/ignite/cli/app/params"
 	"github.com/ignite/cli/app/wasmconfig"
 	"io"
@@ -36,18 +40,18 @@ const flagIAVLCacheSize = "iavl-cache-size"
 // NewRootCmd creates a new root command for jmesd. It is called once in the
 // main function.
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
-	encodingConfig := jmesapp.MakeEncodingConfig()
+	encodingConfig := app.MakeEncodingConfig()
 
 	sdkConfig := sdk.GetConfig()
-	sdkConfig.SetCoinType(jmesapp.CoinType)
+	sdkConfig.SetCoinType(app.CoinType)
 
-	accountPubKeyPrefix := jmesapp.AccountAddressPrefix + "pub"
-	validatorAddressPrefix := jmesapp.AccountAddressPrefix + "valoper"
-	validatorPubKeyPrefix := jmesapp.AccountAddressPrefix + "valoperpub"
-	consNodeAddressPrefix := jmesapp.AccountAddressPrefix + "valcons"
-	consNodePubKeyPrefix := jmesapp.AccountAddressPrefix + "valconspub"
+	accountPubKeyPrefix := app.AccountAddressPrefix + "pub"
+	validatorAddressPrefix := app.AccountAddressPrefix + "valoper"
+	validatorPubKeyPrefix := app.AccountAddressPrefix + "valoperpub"
+	consNodeAddressPrefix := app.AccountAddressPrefix + "valcons"
+	consNodePubKeyPrefix := app.AccountAddressPrefix + "valconspub"
 
-	sdkConfig.SetBech32PrefixForAccount(jmesapp.AccountAddressPrefix, accountPubKeyPrefix)
+	sdkConfig.SetBech32PrefixForAccount(app.AccountAddressPrefix, accountPubKeyPrefix)
 	sdkConfig.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
 	sdkConfig.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
 	sdkConfig.SetAddressVerifier(wasmtypes.VerifyAddressLen())
@@ -60,7 +64,7 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		WithLegacyAmino(encodingConfig.Amino).
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
-		WithHomeDir(jmesapp.DefaultNodeHome).
+		WithHomeDir(app.DefaultNodeHome).
 		WithViper("JMES")
 
 	rootCmd := &cobra.Command{
@@ -90,7 +94,7 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 
 			jmesAppTemplate, jmesAppConfig := initAppConfig()
 
-			return server.InterceptConfigsPreRunHandler(cmd, jmesAppTemplate, jmesAppConfig)
+			return server.InterceptConfigsPreRunHandler(cmd, jmesAppTemplate, jmesAppConfig, nil)
 		},
 	}
 
@@ -104,28 +108,28 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	// authclient.Codec = encodingConfig.Marshaler
 
 	rootCmd.AddCommand(
-		InitCmd(jmesapp.ModuleBasics, jmesapp.DefaultNodeHome),
-		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, jmesapp.DefaultNodeHome),
-		genutilcli.GenTxCmd(jmesapp.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, jmesapp.DefaultNodeHome),
-		genutilcli.ValidateGenesisCmd(jmesapp.ModuleBasics),
-		AddGenesisAccountCmd(jmesapp.DefaultNodeHome),
+		InitCmd(app.ModuleBasics, app.DefaultNodeHome),
+		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, nil),
+		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
+		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
+		AddGenesisAccountCmd(app.DefaultNodeHome),
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 	)
 
 	a := appCreator{encodingConfig}
-	server.AddCommands(rootCmd, jmesapp.DefaultNodeHome, a.newApp, a.appExport, addModuleInitFlags)
+	server.AddCommands(rootCmd, app.DefaultNodeHome, a.newApp, a.appExport, addModuleInitFlags)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
 		rpc.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		keys.Commands(jmesapp.DefaultNodeHome),
+		keys.Commands(app.DefaultNodeHome),
 	)
 
 	// add rosetta commands
-	rootCmd.AddCommand(server.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Marshaler))
+	rootCmd.AddCommand(cmd.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Marshaler))
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
@@ -151,7 +155,7 @@ func queryCommand() *cobra.Command {
 		authcmd.QueryTxCmd(),
 	)
 
-	jmesapp.ModuleBasics.AddQueryCommands(cmd)
+	app.ModuleBasics.AddQueryCommands(cmd)
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
@@ -179,7 +183,7 @@ func txCommand() *cobra.Command {
 		flags.LineBreak,
 	)
 
-	jmesapp.ModuleBasics.AddTxCommands(cmd)
+	app.ModuleBasics.AddTxCommands(cmd)
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
@@ -213,7 +217,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		panic(err)
 	}
 
-	snapshotDB, err := sdk.NewLevelDB("metadata", snapshotDir)
+	snapshotDB, err := db2.NewGoLevelDB("metadata", snapshotDir)
 	if err != nil {
 		panic(err)
 	}
@@ -222,7 +226,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		panic(err)
 	}
 
-	return jmesapp.NewJmesApp(
+	return app.NewJmesApp(
 		logger, db, traceStore, true, skipUpgradeHeights,
 		cast.ToString(appOpts.Get(flags.FlagHome)),
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
@@ -253,15 +257,15 @@ func (a appCreator) appExport(
 		return servertypes.ExportedApp{}, errors.New("application home not set")
 	}
 
-	var jmesApp *jmesapp.JmesApp
+	var jmesApp *app.JmesApp
 	if height != -1 {
-		jmesApp = jmesapp.NewJmesApp(logger, db, traceStore, false, map[int64]bool{}, homePath, cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)), a.encodingConfig, appOpts, wasmconfig.DefaultConfig())
+		jmesApp = app.NewJmesApp(logger, db, traceStore, false, map[int64]bool{}, homePath, cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)), a.encodingConfig, appOpts, wasmconfig.DefaultConfig())
 
 		if err := jmesApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		jmesApp = jmesapp.NewJmesApp(logger, db, traceStore, true, map[int64]bool{}, homePath, cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)), a.encodingConfig, appOpts, wasmconfig.DefaultConfig())
+		jmesApp = app.NewJmesApp(logger, db, traceStore, true, map[int64]bool{}, homePath, cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)), a.encodingConfig, appOpts, wasmconfig.DefaultConfig())
 	}
 
 	return jmesApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
