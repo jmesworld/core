@@ -4,6 +4,7 @@ import (
 	"cosmossdk.io/log"
 	"cosmossdk.io/tools/rosetta/cmd"
 	"errors"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	db2 "github.com/cometbft/cometbft-db"
 	"github.com/ignite/cli/app"
 	"github.com/ignite/cli/app/params"
@@ -12,6 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
+	snapshottypes "cosmossdk.io/store/snapshots/types"
+	dbm "github.com/cometbft/cometbft-db"
+	cli "github.com/cometbft/cometbft/libs/cli"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
@@ -81,7 +85,7 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 			}
 
 			// unsafe-reset-all is not working without viper set
-			viper.Set(tmcli.HomeFlag, initClientCtx.HomeDir)
+			viper.Set(cli.HomeFlag, initClientCtx.HomeDir)
 
 			initClientCtx, err = config.ReadFromClientConfig(initClientCtx)
 			if err != nil {
@@ -113,7 +117,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
-		tmcli.NewCompletionCmd(rootCmd, true),
+		cli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 	)
 
@@ -226,6 +230,11 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		panic(err)
 	}
 
+	snapshotOptions := snapshottypes.NewSnapshotOptions(
+		cast.ToUint64(appOpts.Get(server.FlagStateSyncSnapshotInterval)),
+		cast.ToUint32(appOpts.Get(server.FlagStateSyncSnapshotKeepRecent)),
+	)
+
 	return app.NewJmesApp(
 		logger, db, traceStore, true, skipUpgradeHeights,
 		cast.ToString(appOpts.Get(flags.FlagHome)),
@@ -241,9 +250,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		baseapp.SetInterBlockCache(cache),
 		baseapp.SetTrace(cast.ToBool(appOpts.Get(server.FlagTrace))),
 		baseapp.SetIndexEvents(cast.ToStringSlice(appOpts.Get(server.FlagIndexEvents))),
-		baseapp.SetSnapshotStore(snapshotStore),
-		baseapp.SetSnapshotInterval(cast.ToUint64(appOpts.Get(server.FlagStateSyncSnapshotInterval))),
-		baseapp.SetSnapshotKeepRecent(cast.ToUint32(appOpts.Get(server.FlagStateSyncSnapshotKeepRecent))),
+		baseapp.SetSnapshot(snapshotStore, snapshotOptions),
 		baseapp.SetIAVLCacheSize(int(cast.ToUint64(appOpts.Get(flagIAVLCacheSize)))),
 	)
 }

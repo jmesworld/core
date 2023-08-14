@@ -290,6 +290,11 @@ type JmesApp struct {
 	configurator module.Configurator
 }
 
+func (app *JmesApp) RegisterNodeService(context client.Context) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewJmesApp returns a reference to an initialized Jmes.
 func NewJmesApp(
 	logger log.Logger,

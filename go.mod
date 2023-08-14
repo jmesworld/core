@@ -3,6 +3,7 @@ module github.com/ignite/cli
 go 1.19
 
 require (
+	github.com/CosmWasm/wasmd v0.41.0
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/ibc-go/v7 v7.1.0
@@ -10,6 +11,9 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
+	github.com/cometbft/cometbft v0.37.1
+    github.com/cometbft/cometbft-db v0.7.0
+    cosmossdk.io/store v1.0.0-alpha.1.0.20230728080422-54ed7dab3982
 )
 
 require (

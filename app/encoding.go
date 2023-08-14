@@ -3,8 +3,7 @@ package app
 import (
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	"github.com/cosmos/cosmos-sdk/std"
-
-	"github.com/jmesworld/core/v2/app/params"
+	"github.com/ignite/cli/app/params"
 )
 
 var legacyCodecRegistered = false
