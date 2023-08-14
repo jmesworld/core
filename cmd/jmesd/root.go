@@ -6,6 +6,7 @@ import (
 	"errors"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	db2 "github.com/cometbft/cometbft-db"
+	types2 "github.com/cosmos/cosmos-sdk/snapshots/types"
 	"github.com/ignite/cli/app"
 	"github.com/ignite/cli/app/params"
 	"github.com/ignite/cli/app/wasmconfig"
@@ -250,7 +251,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		baseapp.SetInterBlockCache(cache),
 		baseapp.SetTrace(cast.ToBool(appOpts.Get(server.FlagTrace))),
 		baseapp.SetIndexEvents(cast.ToStringSlice(appOpts.Get(server.FlagIndexEvents))),
-		baseapp.SetSnapshot(snapshotStore, snapshotOptions),
+		baseapp.SetSnapshot(snapshotStore, types2.SnapshotOptions(snapshotOptions)),
 		baseapp.SetIAVLCacheSize(int(cast.ToUint64(appOpts.Get(flagIAVLCacheSize)))),
 	)
 }
