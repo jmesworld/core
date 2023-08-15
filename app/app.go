@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/log"
 	"encoding/json"
 	dbm "github.com/cometbft/cometbft-db"
+	tmos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	runtimeservices "github.com/cosmos/cosmos-sdk/runtime/services"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -17,7 +18,9 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	solomachine "github.com/cosmos/ibc-go/v7/modules/light-clients/06-solomachine"
 	ibctm "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
+	"github.com/ignite/cli/app/ante"
 	"github.com/ignite/cli/app/wasmconfig"
+	"github.com/strangelove-ventures/packet-forward-middleware/v7/router"
 	"io"
 	"net/http"
 	"os"
@@ -109,21 +112,14 @@ import (
 	ibcclientclient "github.com/cosmos/ibc-go/v7/modules/core/02-client/client"
 	ibcclienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
-	"github.com/strangelove-ventures/packet-forward-middleware/v2/router"
-	routerkeeper "github.com/strangelove-ventures/packet-forward-middleware/v2/router/keeper"
-	routertypes "github.com/strangelove-ventures/packet-forward-middleware/v2/router/types"
+	routerkeeper "github.com/strangelove-ventures/packet-forward-middleware/v7/router/keeper"
+	routertypes "github.com/strangelove-ventures/packet-forward-middleware/v7/router/types"
 
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmclient "github.com/CosmWasm/wasmd/x/wasm/client"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	//customtx "github.com/jmesworld/core/v2/app/tx"
 	"github.com/prometheus/client_golang/prometheus"
-
-	// this line is used by starport scaffolding # stargate/app/moduleImport
-	"github.com/jmesworld/core/v2/app/ante"
-
-	// unnamed import of statik for swagger UI support
-	_ "github.com/jmesworld/core/v2/client/docs/statik"
 )
 
 // this line is used by starport scaffolding # stargate/wasm/app/enabledProposals
@@ -412,15 +408,26 @@ func NewJmesApp(
 		keys[crisistypes.StoreKey], invCheckPeriod, app.BankKeeper, authtypes.FeeCollectorName,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
-	app.UpgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, homePath, nil)
+
+	app.UpgradeKeeper = upgradekeeper.NewKeeper(
+		skipUpgradeHeights,
+		keys[upgradetypes.StoreKey],
+		appCodec,
+		homePath,
+		app.BaseApp,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String())
 
 	// upgrade handlers
 	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
-	app.StakingKeeper = *stakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
+	app.StakingKeeper = stakingkeeper.NewKeeper(
+		appCodec,
+		keys[stakingtypes.StoreKey],
+		app.AccountKeeper,
+		app.BankKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
 	evidenceKeeper := evidencekeeper.NewKeeper(
