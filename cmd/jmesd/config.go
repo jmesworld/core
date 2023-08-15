@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/jmesworld/core/v2/app/wasmconfig"
-
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/ignite/cli/app/wasmconfig"
 )
 
 // JMESAppConfig jmes specify app config
