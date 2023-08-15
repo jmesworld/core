@@ -37,7 +37,7 @@ func (h UpgradeHandler) vestingScheduleUpdateHandler(ctx sdk.Context, genesisTim
 		account := h.AccountKeeper.GetAccount(ctx, accAddr)
 		vestingAccount := account.(*vestingtypes.PeriodicVestingAccount)
 		vestingAccount.OriginalVesting = vestingAccount.OriginalVesting.Sub(
-			sdk.NewCoins(sdk.NewCoin(bondDenom, sdk.NewInt(unlockAmount))),
+			sdk.NewCoin(bondDenom, sdk.NewInt(unlockAmount)),
 		)
 
 		// Track delegation - decrease delegated vesting

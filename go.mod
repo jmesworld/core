@@ -14,7 +14,7 @@ require (
 	github.com/cometbft/cometbft v0.37.1
     github.com/cometbft/cometbft-db v0.7.0
     cosmossdk.io/store v1.0.0-alpha.1.0.20230728080422-54ed7dab3982
-    github.com/strangelove-ventures/packet-forward-middleware/v2 v2.1.3
+	github.com/strangelove-ventures/packet-forward-middleware/v7 v7.0.0-20230412224111-136e94e98861
 )
 
 require (

@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
@@ -35,7 +34,7 @@ func (app *JmesApp) ExportAppStateAndValidators(
 		return servertypes.ExportedApp{}, err
 	}
 
-	validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
+	validators, err := staking.WriteValidators(ctx, &app.StakingKeeper)
 	if err != nil {
 		return servertypes.ExportedApp{}, err
 	}
@@ -49,7 +48,8 @@ func (app *JmesApp) ExportAppStateAndValidators(
 
 // prepare for fresh start at zero height
 // NOTE zero height genesis is a temporary feature which will be deprecated
-//      in favour of export at a block height
+//
+//	in favour of export at a block height
 func (app *JmesApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
 	applyAllowedAddrs := false
 
