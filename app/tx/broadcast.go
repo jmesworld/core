@@ -1,25 +1,24 @@
 package tx
 
 import (
-	"errors"
-	"fmt"
-	"github.com/gorilla/mux"
-	"io/ioutil"
-	"net/http"
+	_ "errors"
+	_ "fmt"
+	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
+	_ "io/ioutil"
+	_ "net/http"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	clientrest "github.com/cosmos/cosmos-sdk/client/rest"
+	_ "github.com/cosmos/cosmos-sdk/client"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/rest"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	_ "github.com/cosmos/cosmos-sdk/types"
 )
 
+/**
 // RegisterTxRoutes registers registers jmes custom transaction routes on the provided router.
 func RegisterTxRoutes(clientCtx client.Context, rtr *mux.Router) {
 	r := clientrest.WithHTTPDeprecationHeaders(rtr)
 	r.HandleFunc("/txs", BroadcastTxRequest(clientCtx)).Methods("POST")
 }
+**/
 
 // BroadcastReq defines a tx broadcasting request.
 type BroadcastReq struct {
@@ -36,6 +35,7 @@ func (m BroadcastReq) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	return m.Tx.UnpackInterfaces(unpacker)
 }
 
+/**
 // BroadcastTxRequest implements a tx broadcasting handler that is responsible
 // for broadcasting a valid and signed tx to a full node. The tx can be
 // broadcasted via a sync|async|block mechanism.
@@ -124,3 +124,4 @@ func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
 		rest.PostProcessResponseBare(w, clientCtx, res)
 	}
 }
+	**/

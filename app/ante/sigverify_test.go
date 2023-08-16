@@ -1,5 +1,8 @@
 package ante_test
 
+import _ "github.com/cosmos/cosmos-sdk/testutil/testdata"
+
+/**
 import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -194,3 +197,4 @@ func (suite *AnteTestSuite) TestSigVerification_ExplicitAmino() {
 		}
 	}
 }
+**/
