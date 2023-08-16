@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 
-	snapshottypes "cosmossdk.io/store/snapshots/types"
 	dbm "github.com/cometbft/cometbft-db"
 	cli "github.com/cometbft/cometbft/libs/cli"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -247,7 +246,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		panic(err)
 	}
 
-	snapshotOptions := snapshottypes.NewSnapshotOptions(
+	snapshotOptions := types2.NewSnapshotOptions(
 		cast.ToUint64(appOpts.Get(server.FlagStateSyncSnapshotInterval)),
 		cast.ToUint32(appOpts.Get(server.FlagStateSyncSnapshotKeepRecent)),
 	)
