@@ -119,7 +119,6 @@ import (
 	routerkeeper "github.com/strangelove-ventures/packet-forward-middleware/v7/router/keeper"
 	routertypes "github.com/strangelove-ventures/packet-forward-middleware/v7/router/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	//customtx "github.com/jmesworld/core/v2/app/tx"
 	"github.com/prometheus/client_golang/prometheus"

@@ -4,7 +4,6 @@ import (
 	"cosmossdk.io/log"
 	"cosmossdk.io/tools/rosetta/cmd"
 	"errors"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	db2 "github.com/cometbft/cometbft-db"
 	tmtypes "github.com/cometbft/cometbft/types"
 	types2 "github.com/cosmos/cosmos-sdk/snapshots/types"
