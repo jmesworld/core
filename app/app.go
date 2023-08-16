@@ -604,7 +604,7 @@ func NewJmesApp(
 		icaModule,
 		routerModule,
 		// this line is used by starport scaffolding # stargate/app/appModule
-		wasm.NewAppModule(appCodec, &app.wasmKeeper, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+		wasm.NewAppModule(appCodec, &app.wasmKeeper, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.MsgServiceRouter(), app.GetSubspace(stakingtypes.ModuleName)),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
