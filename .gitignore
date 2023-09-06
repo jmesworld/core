@@ -1,0 +1,18 @@
+vue/node_modules
+vue/dist
+secret.yml
+cosmoshub3.json
+exchanges.json
+jmes_out.json
+bin
+.vscode
+.ash_history
+tmp-swagger-gen
+
+heighliner*
+
+**/data/wasm/*
+
+# emacs editor config
+\#*\#
+.\#*
