@@ -5,30 +5,67 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+
+	"github.com/cometbft/cometbft/libs/log"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 
+	dbm "github.com/cometbft/cometbft-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 
-	"github.com/jmesworld/core/v17/app"
+	"github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	"github.com/jmesworld/core/v2/app"
+	"github.com/jmesworld/core/v2/app/wasmconfig"
+	tokenfactorytypes "github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
-func CreateTestInput(t *testing.T) (*app.App, sdk.Context) {
-	osmosis := app.Setup(t)
-	ctx := osmosis.BaseApp.NewContext(false, tmproto.Header{Height: 1, ChainID: "testing", Time: time.Now().UTC()})
-	return osmosis, ctx
+func CreateTestInput() (*app.JMESApp, sdk.Context) {
+	encCfg := app.MakeEncodingConfig()
+	genesisState := app.NewDefaultGenesisState(encCfg.Marshaler)
+	genesisState.ConfigureBondDenom(encCfg.Marshaler, "ujmes")
+	db := dbm.NewMemDB()
+	jmesApp := app.NewJMESApp(
+		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		db,
+		nil,
+		true,
+		map[int64]bool{},
+		app.DefaultNodeHome,
+		0,
+		encCfg,
+		simtestutil.EmptyAppOptions{},
+		wasmconfig.DefaultConfig(),
+	)
+	ctx := jmesApp.BaseApp.NewContext(true, tmproto.Header{Height: 1, ChainID: "phoenix-1", Time: time.Now()})
+	err := jmesApp.WasmKeeper.SetParams(ctx, wasmtypes.DefaultParams())
+	if err != nil {
+		panic(err)
+	}
+	jmesApp.BankKeeper.SetParams(ctx, banktypes.NewParams(true))
+	if err != nil {
+		panic(err)
+	}
+	jmesApp.TokenFactoryKeeper.SetParams(ctx, tokenfactorytypes.DefaultParams())
+	if err != nil {
+		panic(err)
+	}
+	jmesApp.DistrKeeper.SetFeePool(ctx, distrtypes.InitialFeePool())
+	if err != nil {
+		panic(err)
+	}
+	return jmesApp, ctx
 }
 
-func FundAccount(t *testing.T, ctx sdk.Context, jmesapp *app.App, acct sdk.AccAddress) {
-	err := banktestutil.FundAccount(jmesapp.AppKeepers.BankKeeper, ctx, acct, sdk.NewCoins(
-		sdk.NewCoin("uosmo", sdk.NewInt(10000000000)),
-	))
-	require.NoError(t, err)
+func FundAccount(t *testing.T, ctx sdk.Context, jmes *app.JMESApp, acct sdk.AccAddress) {
+	t.Helper()
 }
 
 // we need to make this deterministic (same every test run), as content might affect gas costs
@@ -48,20 +85,22 @@ func RandomBech32AccountAddress() string {
 	return RandomAccountAddress().String()
 }
 
-func storeReflectCode(t *testing.T, ctx sdk.Context, jmesapp *app.App, addr sdk.AccAddress) uint64 {
+func storeReflectCode(t *testing.T, ctx sdk.Context, app *app.JMESApp, addr sdk.AccAddress) uint64 {
+	t.Helper()
 	wasmCode, err := os.ReadFile("./testdata/token_reflect.wasm")
 	require.NoError(t, err)
 
-	contractKeeper := keeper.NewDefaultPermissionKeeper(jmesapp.AppKeepers.WasmKeeper)
-	codeID, _, err := contractKeeper.Create(ctx, addr, wasmCode, nil)
+	contractKeeper := keeper.NewDefaultPermissionKeeper(app.WasmKeeper)
+	codeID, _, err := contractKeeper.Create(ctx, addr, wasmCode, &wasmtypes.AccessConfig{Permission: wasmtypes.AccessTypeEverybody})
 	require.NoError(t, err)
 
 	return codeID
 }
 
-func instantiateReflectContract(t *testing.T, ctx sdk.Context, jmesapp *app.App, funder sdk.AccAddress) sdk.AccAddress {
+func instantiateReflectContract(t *testing.T, ctx sdk.Context, app *app.JMESApp, funder sdk.AccAddress) sdk.AccAddress {
+	t.Helper()
 	initMsgBz := []byte("{}")
-	contractKeeper := keeper.NewDefaultPermissionKeeper(jmesapp.AppKeepers.WasmKeeper)
+	contractKeeper := keeper.NewDefaultPermissionKeeper(app.WasmKeeper)
 	codeID := uint64(1)
 	addr, _, err := contractKeeper.Instantiate(ctx, codeID, funder, funder, initMsgBz, "demo contract", nil)
 	require.NoError(t, err)
@@ -69,24 +108,22 @@ func instantiateReflectContract(t *testing.T, ctx sdk.Context, jmesapp *app.App,
 	return addr
 }
 
-func fundAccount(t *testing.T, ctx sdk.Context, jmesapp *app.App, addr sdk.AccAddress, coins sdk.Coins) {
-	err := banktestutil.FundAccount(
-		jmesapp.AppKeepers.BankKeeper,
-		ctx,
-		addr,
-		coins,
-	)
+func fundAccount(t *testing.T, ctx sdk.Context, app *app.JMESApp, addr sdk.AccAddress, coins sdk.Coins) {
+	t.Helper()
+	err := app.BankKeeper.MintCoins(ctx, minttypes.ModuleName, coins)
+	require.NoError(t, err)
+	err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, addr, coins)
 	require.NoError(t, err)
 }
 
-func SetupCustomApp(t *testing.T, addr sdk.AccAddress) (*app.App, sdk.Context) {
-	jmesApp, ctx := CreateTestInput(t)
-	wasmKeeper := jmesApp.AppKeepers.WasmKeeper
+func SetupCustomApp(t *testing.T, addr sdk.AccAddress) (*app.JMESApp, sdk.Context) {
+	t.Helper()
+	app, ctx := CreateTestInput()
 
-	storeReflectCode(t, ctx, jmesApp, addr)
+	storeReflectCode(t, ctx, app, addr)
 
-	cInfo := wasmKeeper.GetCodeInfo(ctx, 1)
+	cInfo := app.WasmKeeper.GetCodeInfo(ctx, 1)
 	require.NotNil(t, cInfo)
 
-	return jmesApp, ctx
+	return app, ctx
 }

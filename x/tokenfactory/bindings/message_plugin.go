@@ -3,19 +3,17 @@ package bindings
 import (
 	"encoding/json"
 
+	errorsmod "cosmossdk.io/errors"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-
-	errorsmod "cosmossdk.io/errors"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
-	bindingstypes "github.com/jmesworld/core/v17/x/tokenfactory/bindings/types"
-	tokenfactorykeeper "github.com/jmesworld/core/v17/x/tokenfactory/keeper"
-	tokenfactorytypes "github.com/jmesworld/core/v17/x/tokenfactory/types"
+	bindingstypes "github.com/jmesworld/core/v2/x/tokenfactory/bindings/types"
+	tokenfactorykeeper "github.com/jmesworld/core/v2/x/tokenfactory/keeper"
+	tokenfactorytypes "github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 // CustomMessageDecorator returns decorator for custom CosmWasm bindings messages
@@ -65,9 +63,6 @@ func (m *CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 		}
 		if tokenMsg.SetMetadata != nil {
 			return m.setMetadata(ctx, contractAddr, tokenMsg.SetMetadata)
-		}
-		if tokenMsg.ForceTransfer != nil {
-			return m.forceTransfer(ctx, contractAddr, tokenMsg.ForceTransfer)
 		}
 	}
 	return m.wrapped.DispatchMsg(ctx, contractAddr, contractIBCPortID, msg)
@@ -138,7 +133,6 @@ func PerformMint(f *tokenfactorykeeper.Keeper, b *bankkeeper.BaseKeeper, ctx sdk
 
 	coin := sdk.Coin{Denom: mint.Denom, Amount: mint.Amount}
 	sdkMsg := tokenfactorytypes.NewMsgMint(contractAddr.String(), coin)
-
 	if err = sdkMsg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -149,11 +143,6 @@ func PerformMint(f *tokenfactorykeeper.Keeper, b *bankkeeper.BaseKeeper, ctx sdk
 	if err != nil {
 		return errorsmod.Wrap(err, "minting coins from message")
 	}
-
-	if b.BlockedAddr(rcpt) {
-		return errorsmod.Wrapf(err, "minting coins to blocked address %s", rcpt.String())
-	}
-
 	err = b.SendCoins(ctx, contractAddr, rcpt, sdk.NewCoins(coin))
 	if err != nil {
 		return errorsmod.Wrap(err, "sending newly minted coins from message")
@@ -207,13 +196,12 @@ func PerformBurn(f *tokenfactorykeeper.Keeper, ctx sdk.Context, contractAddr sdk
 	if burn == nil {
 		return wasmvmtypes.InvalidRequest{Err: "burn token null mint"}
 	}
+	if burn.BurnFromAddress != "" && burn.BurnFromAddress != contractAddr.String() {
+		return wasmvmtypes.InvalidRequest{Err: "BurnFromAddress must be \"\""}
+	}
 
 	coin := sdk.Coin{Denom: burn.Denom, Amount: burn.Amount}
 	sdkMsg := tokenfactorytypes.NewMsgBurn(contractAddr.String(), coin)
-	if burn.BurnFromAddress != "" {
-		sdkMsg = tokenfactorytypes.NewMsgBurnFrom(contractAddr.String(), coin, burn.BurnFromAddress)
-	}
-
 	if err := sdkMsg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -223,47 +211,6 @@ func PerformBurn(f *tokenfactorykeeper.Keeper, ctx sdk.Context, contractAddr sdk
 	_, err := msgServer.Burn(sdk.WrapSDKContext(ctx), sdkMsg)
 	if err != nil {
 		return errorsmod.Wrap(err, "burning coins from message")
-	}
-	return nil
-}
-
-// forceTransfer moves tokens.
-func (m *CustomMessenger) forceTransfer(ctx sdk.Context, contractAddr sdk.AccAddress, forcetransfer *bindingstypes.ForceTransfer) ([]sdk.Event, [][]byte, error) {
-	err := PerformForceTransfer(m.tokenFactory, ctx, contractAddr, forcetransfer)
-	if err != nil {
-		return nil, nil, errorsmod.Wrap(err, "perform force transfer")
-	}
-	return nil, nil, nil
-}
-
-// PerformForceTransfer performs token moving after validating tokenForceTransfer message.
-func PerformForceTransfer(f *tokenfactorykeeper.Keeper, ctx sdk.Context, contractAddr sdk.AccAddress, forcetransfer *bindingstypes.ForceTransfer) error {
-	if forcetransfer == nil {
-		return wasmvmtypes.InvalidRequest{Err: "force transfer null"}
-	}
-
-	_, err := parseAddress(forcetransfer.FromAddress)
-	if err != nil {
-		return err
-	}
-
-	_, err = parseAddress(forcetransfer.ToAddress)
-	if err != nil {
-		return err
-	}
-
-	coin := sdk.Coin{Denom: forcetransfer.Denom, Amount: forcetransfer.Amount}
-	sdkMsg := tokenfactorytypes.NewMsgForceTransfer(contractAddr.String(), coin, forcetransfer.FromAddress, forcetransfer.ToAddress)
-
-	if err := sdkMsg.ValidateBasic(); err != nil {
-		return err
-	}
-
-	// Transfer through token factory / message server
-	msgServer := tokenfactorykeeper.NewMsgServerImpl(*f)
-	_, err = msgServer.ForceTransfer(sdk.WrapSDKContext(ctx), sdkMsg)
-	if err != nil {
-		return errorsmod.Wrap(err, "force transferring from message")
 	}
 	return nil
 }

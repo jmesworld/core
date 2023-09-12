@@ -2,9 +2,12 @@
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT := $(shell git log -1 --format='%H')
+LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
-APP = ./app
-
+BUILDDIR ?= $(CURDIR)/build
+DOCKER := $(shell which docker)
+SHA256_CMD = sha256sum
+GO_VERSION ?= "1.20"
 # don't override user values
 ifeq (,$(VERSION))
   VERSION := $(shell git describe --tags)
@@ -14,13 +17,8 @@ ifeq (,$(VERSION))
   endif
 endif
 
-PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
-LEDGER_ENABLED ?= true
-SDK_PACK := $(shell go list -m github.com/cosmos/cosmos-sdk | sed  's/ /\@/g')
-BFT_VERSION := $(shell go list -m github.com/cometbft/cometbft | sed 's:.* ::') # grab everything after the space in "github.com/cometbft/cometbft v0.34.7"
-DOCKER := $(shell which docker)
-DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf:1.0.0-rc8
-BUILDDIR ?= $(CURDIR)/build
+TM_VERSION := $(shell go list -m github.com/cometbft/cometbft | sed 's:.* ::')
+
 export GO111MODULE = on
 
 # process build tags
@@ -49,9 +47,16 @@ ifeq ($(LEDGER_ENABLED),true)
   endif
 endif
 
-ifeq (cleveldb,$(findstring cleveldb,$(JMES_BUILD_OPTIONS)))
-  build_tags += gcc cleveldb
+ifeq (cleveldb,$(findstring cleveldb,$(COSMOS_BUILD_OPTIONS)))
+  build_tags += gcc
 endif
+ifeq (rocksdb,$(findstring rocksdb,$(COSMOS_BUILD_OPTIONS)))
+  build_tags += rocksdb
+endif
+ifeq (boltdb,$(findstring boltdb,$(COSMOS_BUILD_OPTIONS)))
+  build_tags += boltdb
+endif
+
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -67,15 +72,30 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=jmes \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)" \
-			-X github.com/cometbft/cometbft/version.TMCoreSemVer=$(BFT_VERSION)
+			-X github.com/cometbft/cometbft/version.TMCoreSemVer=$(TM_VERSION)
 
-ifeq (cleveldb,$(findstring cleveldb,$(JMES_BUILD_OPTIONS)))
+# DB backend selection
+ifeq (cleveldb,$(findstring cleveldb,$(COSMOS_BUILD_OPTIONS)))
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
 endif
-ifeq ($(LINK_STATICALLY),true)
-  ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
+ifeq (badgerdb,$(findstring badgerdb,$(COSMOS_BUILD_OPTIONS)))
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=badgerdb
 endif
-ifeq (,$(findstring nostrip,$(JMES_BUILD_OPTIONS)))
+# handle rocksdb
+ifeq (rocksdb,$(findstring rocksdb,$(COSMOS_BUILD_OPTIONS)))
+  $(info ################################################################)
+  $(info To use rocksdb, you need to install rocksdb first)
+  $(info Please follow this guide https://github.com/rockset/rocksdb-cloud/blob/master/INSTALL.md)
+  $(info ################################################################)
+  CGO_ENABLED=1
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=rocksdb
+endif
+# handle boltdb
+ifeq (boltdb,$(findstring boltdb,$(COSMOS_BUILD_OPTIONS)))
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=boltdb
+endif
+
+ifeq (,$(findstring nostrip,$(COSMOS_BUILD_OPTIONS)))
   ldflags += -w -s
 endif
 ldflags += $(LDFLAGS)
@@ -83,131 +103,256 @@ ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 # check for nostrip option
-ifeq (,$(findstring nostrip,$(JMES_BUILD_OPTIONS)))
+ifeq (,$(findstring nostrip,$(COSMOS_BUILD_OPTIONS)))
   BUILD_FLAGS += -trimpath
 endif
- 
-#$(info $$BUILD_FLAGS is [$(BUILD_FLAGS)])
+
+# The below include contains the tools and runsim targets.
 include contrib/devtools/Makefile
 
-all: install
-	@echo "--> project root: go mod tidy"	
-	@go mod tidy			
-	@echo "--> project root: linting --fix"	
-	@GOGC=1 golangci-lint run --fix --timeout=8m
+all: tools install lint test
 
-install: go.sum
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/jmesd
-
-build:
-	go build $(BUILD_FLAGS) -o bin/jmesd ./cmd/jmesd
-
-test-node:
-	CHAIN_ID="local-1" HOME_DIR="~/.jmes1" TIMEOUT_COMMIT="500ms" CLEAN=true sh scripts/test_node.sh
-
-###############################################################################
-###                                Testing                                  ###
-###############################################################################
-
-test-sim-multi-seed-short: runsim
-	@echo "Running short multi-seed application simulation. This may take awhile!"
-	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(APP) -ExitOnFail 50 10 TestFullAppSimulation
-
-benchmark:
-	@go test -mod=readonly -bench=. $(PACKAGES_UNIT)
-
-###############################################################################
-###                             e2e interchain test                         ###
-###############################################################################
-
-# Executes basic chain tests via interchaintest
-ictest-basic: rm-testcache
-	cd interchaintest && go test -race -v -run TestBasicJmesStart .
-
-ictest-ibchooks: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesIBCHooks .
-
-ictest-tokenfactory: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesTokenFactory .
-
-ictest-feeshare: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesFeeShare .
-
-ictest-pfm: rm-testcache
-	cd interchaintest && go test -race -v -run TestPacketForwardMiddlewareRouter .
-
-# Executes a basic chain upgrade test via interchaintest
-ictest-upgrade: rm-testcache
-	cd interchaintest && go test -race -v -run TestBasicJmesUpgrade .
-
-# Executes a basic chain upgrade locally via interchaintest after compiling a local image as jmes:local
-ictest-upgrade-local: local-image ictest-upgrade
-
-# Executes IBC tests via interchaintest
-ictest-ibc: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesGaiaIBCTransfer .
-
-# Unity contract CI
-ictest-unity-deploy: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesUnityContractDeploy .
-
-ictest-unity-gov: rm-testcache
-	cd interchaintest && go test -race -v -run TestJmesUnityContractGovSubmit .
-
-ictest-pob: rm-testcache
-	cd interchaintest &&  go test -race -v -run TestJmesPOB .
-
-ictest-drip: rm-testcache
-	cd interchaintest &&  go test -race -v -run TestJmesDrip .
-
-rm-testcache:
-	go clean -testcache
-
-.PHONY: test-mutation ictest-basic ictest-upgrade ictest-ibc ictest-unity-deploy ictest-unity-gov ictest-pob
-
-###############################################################################
-###                                  heighliner                             ###
-###############################################################################
-
-get-heighliner:
-	git clone https://github.com/strangelove-ventures/heighliner.git
-	cd heighliner && go install
-
-local-image:
-ifeq (,$(shell which heighliner))
-	echo 'heighliner' binary not found. Consider running `make get-heighliner`
+build: go.sum
+ifeq ($(OS),Windows_NT)
+	exit 1
 else
-	heighliner build -c jmes --local -f ./chains.yaml
+	go build -mod=readonly $(BUILD_FLAGS) -o build/jmesd ./cmd/jmesd
 endif
 
-.PHONY: get-heighliner local-image
+build/linux/amd64:
+	GOOS=linux GOARCH=amd64 go build -mod=readonly $(BUILD_FLAGS) -o "$@/jmesd" ./cmd/jmesd
+
+build/linux/arm64:
+	GOOS=linux GOARCH=arm64 go build -mod=readonly $(BUILD_FLAGS) -o "$@/jmesd" ./cmd/jmesd
+
+build/darwin/amd64:
+	GOOS=darwin GOARCH=amd64 go build -mod=readonly $(BUILD_FLAGS) -o "$@/jmesd" ./cmd/jmesd
+
+build/darwin/arm64:
+	GOOS=darwin GOARCH=arm64 go build -mod=readonly $(BUILD_FLAGS) -o "$@/jmesd" ./cmd/jmesd
+
+build/windows/amd64:
+	GOOS=windows GOARCH=amd64 go build -mod=readonly $(BUILD_FLAGS) -o "$@/jmesd" ./cmd/jmesd
+
+build-release: build/linux/amd64 build/linux/arm64 build/darwin/amd64 build/darwin/arm64 build/windows/amd64
+
+build-linux:
+	mkdir -p $(BUILDDIR)
+	docker build --no-cache --tag jmesworld/core ./
+	docker create --name temp jmesworld/core:latest
+	docker cp temp:/usr/local/bin/jmesd $(BUILDDIR)/
+	docker rm temp
+
+build-linux-with-shared-library:
+	mkdir -p $(BUILDDIR)
+	docker build --tag jmesworld/core-shared ./ -f ./shared.Dockerfile
+	docker create --name temp jmesworld/core-shared:latest
+	docker cp temp:/usr/local/bin/jmesd $(BUILDDIR)/
+	docker cp temp:/lib/libwasmvm.so $(BUILDDIR)/
+	docker rm temp
+
+build-release-amd64: go.sum $(BUILDDIR)/
+	$(DOCKER) buildx create --name core-builder || true
+	$(DOCKER) buildx use core-builder
+	$(DOCKER) buildx build \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		--build-arg GIT_VERSION=$(VERSION) \
+		--build-arg GIT_COMMIT=$(COMMIT) \
+    --build-arg BUILDPLATFORM=linux/amd64 \
+    --build-arg GOOS=linux \
+    --build-arg GOARCH=amd64 \
+		-t core:local-amd64 \
+		--load \
+		-f Dockerfile .
+	$(DOCKER) rm -f core-builder || true
+	$(DOCKER) create -ti --name core-builder core:local-amd64
+	$(DOCKER) cp core-builder:/usr/local/bin/jmesd $(BUILDDIR)/release/jmesd
+	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar.gz -C $(BUILDDIR)/release/ jmesd
+	rm $(BUILDDIR)/release/jmesd
+	$(DOCKER) rm -f core-builder
+
+build-release-arm64: go.sum $(BUILDDIR)/
+	$(DOCKER) buildx create --name core-builder  || true
+	$(DOCKER) buildx use core-builder 
+	$(DOCKER) buildx build \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		--build-arg GIT_VERSION=$(VERSION) \
+		--build-arg GIT_COMMIT=$(COMMIT) \
+    --build-arg BUILDPLATFORM=linux/arm64 \
+    --build-arg GOOS=linux \
+    --build-arg GOARCH=arm64 \
+		-t core:local-arm64 \
+		--load \
+		-f Dockerfile .
+	$(DOCKER) rm -f core-builder || true
+	$(DOCKER) create -ti --name core-builder core:local-arm64
+	$(DOCKER) cp core-builder:/usr/local/bin/jmesd $(BUILDDIR)/release/jmesd
+	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar.gz -C $(BUILDDIR)/release/ jmesd
+	rm $(BUILDDIR)/release/jmesd
+	$(DOCKER) rm -f core-builder
+
+install: go.sum 
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/jmesd
+
+.PHONY: build build-linux install
+
+
+###############################################################################
+###                        Integration Tests                                ###
+###############################################################################
+
+integration-test-all: init-test-framework \
+	test-relayer \
+	test-ica \
+	test-ibc-hooks \
+	test-vesting-accounts \
+	test-alliance \
+	test-tokenfactory 
+
+init-test-framework: clean-testing-data install
+	@echo "Initializing both blockchains..."
+	./scripts/tests/init-test-framework.sh
+
+test-relayer:
+	@echo "Testing relayer..."
+	./scripts/tests/relayer/interchain-acc-config/rly-init.sh
+
+test-ica: 
+	@echo "Testing ica..."
+	./scripts/tests/ica/delegate.sh
+
+test-ibc-hooks: 
+	@echo "Testing ibc hooks..."
+	./scripts/tests/ibc-hooks/increment.sh
+
+test-alliance: 
+	@echo "Testing alliance module..."
+	./scripts/tests/alliance/delegate.sh
+
+test-vesting-accounts: 
+	@echo "Testing vesting accounts..."
+	./scripts/tests/vesting-accounts/validate-vesting.sh
+
+test-tokenfactory: 
+	@echo "Testing tokenfactory..."
+	./scripts/tests/tokenfactory/tokenfactory.sh
+
+test-chain-upgrade:
+	@echo "Testing software upgrade..."
+	bash ./scripts/tests/chain-upgrade/chain-upgrade.sh
+
+clean-testing-data:
+	@echo "Killing jmesd and removing previous data"
+	-@pkill jmesd 2>/dev/null
+	-@pkill rly 2>/dev/null
+	-@pkill jmesd_new 2>/dev/null
+	-@pkill jmesd_old 2>/dev/null
+	-@rm -rf ./data
+	-@rm -rf ./_build
+	
+
+.PHONY: integration-test-all init-test-framework test-relayer test-ica test-ibc-hooks test-vesting-accounts test-tokenfactory clean-testing-data
 
 ###############################################################################
 ###                                Protobuf                                 ###
 ###############################################################################
-
-protoVer=0.13.1
+protoVer=0.13.0
 protoImageName=ghcr.io/cosmos/proto-builder:$(protoVer)
 protoImage=$(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace $(protoImageName)
-
-proto-all: proto-format proto-lint proto-gen
 
 proto-gen:
 	@echo "Generating Protobuf files"
 	@$(protoImage) sh ./scripts/protocgen.sh
 
-proto-swagger-gen:
-	@echo "Generating Protobuf Swagger"
-	@$(protoImage) sh ./scripts/protoc-swagger-gen.sh
-	$(MAKE) update-swagger-docs
+gen-swagger:
+	bash scripts/protoc-swagger-gen.sh
 
-proto-format:
-	@$(protoImage) find ./ -name "*.proto" -exec clang-format -i {} \;
+update-swagger-docs: statik
+	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
+	@if [ -n "$(git status --porcelain)" ]; then \
+        echo "Swagger docs are out of sync!";\
+        exit 1;\
+    else \
+        echo "Swagger docs are in sync!";\
+    fi
 
-proto-lint:
-	@$(protoImage) buf lint --error-format=json
+apply-swagger: gen-swagger update-swagger-docs
 
-proto-check-breaking:
-	@$(protoImage) buf breaking --against $(HTTPS_GIT)#branch=main
+proto-all: proto-gen gen-swagger update-swagger-docs apply-swagger
 
-.PHONY: proto-all proto-gen proto-gen-any proto-swagger-gen proto-format proto-lint proto-check-breaking proto-update-deps docs
+.PHONY: proto-gen gen-swagger update-swagger-docs apply-swagger proto-all
+
+########################################
+### Tools & dependencies
+
+go-mod-cache: go.sum
+	@echo "--> Download go modules to local cache"
+	@go mod download
+
+go.sum: go.mod
+	@echo "--> Ensure dependencies have not been modified"
+	@go mod verify
+
+draw-deps:
+	@# requires brew install graphviz or apt-get install graphviz
+	go get github.com/RobotsAndPencils/goviz
+	@goviz -i ./cmd/jmesd -d 2 | dot -Tpng -o dependency-graph.png
+
+distclean: clean tools-clean
+clean:
+	rm -rf \
+    $(BUILDDIR)/ \
+    artifacts/ \
+    tmp-swagger-gen/
+
+.PHONY: distclean clean
+
+
+###############################################################################
+###                           Tests 
+###############################################################################
+
+test: test-unit
+
+test-all: test-unit test-race test-cover
+
+test-unit:
+	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./...
+
+test-race:
+	@VERSION=$(VERSION) go test -mod=readonly -race -tags='ledger test_ledger_mock' ./...
+
+test-cover:
+	@go test -mod=readonly -timeout 10m -race -coverprofile=coverage.txt -covermode=atomic -tags='ledger test_ledger_mock' ./...
+
+benchmark:
+	@go test -mod=readonly -bench=. ./...
+
+simulate:
+	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=true -Enabled=true -Seed 1
+
+test-e2e-pob:
+	cd interchaintest && go test -race -v -run TestPOB .
+
+test-e2e-pmf:
+	cd interchaintest && go test -race -v -run TestPMF .
+
+.PHONY: test test-all test-cover test-unit test-race simulate test-e2e-pob test-e2e-pmf
+
+###############################################################################
+###                                Linting                                  ###
+###############################################################################
+
+lint:
+	golangci-lint run --out-format=tab
+
+lint-fix:
+	golangci-lint run --fix --out-format=tab --issues-exit-code=0
+	
+.PHONY: lint lint-fix
+
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name '*.pb.go' -not -path "./_build/*" | xargs gofmt -w -s
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name '*.pb.go' -not -path "./_build/*" | xargs misspell -w
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name '*.pb.go' -not -path "./_build/*" | xargs goimports -w -local github.com/cosmos/cosmos-sdk
+.PHONY: format

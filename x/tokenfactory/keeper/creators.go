@@ -9,7 +9,7 @@ func (k Keeper) addDenomFromCreator(ctx sdk.Context, creator, denom string) {
 	store.Set([]byte(denom), []byte(denom))
 }
 
-func (k Keeper) GetDenomsFromCreator(ctx sdk.Context, creator string) []string {
+func (k Keeper) getDenomsFromCreator(ctx sdk.Context, creator string) []string {
 	store := k.GetCreatorPrefixStore(ctx, creator)
 
 	iterator := store.Iterator(nil, nil)
@@ -25,5 +25,3 @@ func (k Keeper) GetDenomsFromCreator(ctx sdk.Context, creator string) []string {
 func (k Keeper) GetAllDenomsIterator(ctx sdk.Context) sdk.Iterator {
 	return k.GetCreatorsPrefixStore(ctx).Iterator(nil, nil)
 }
-
-// TODO: Get all denoms a user is the admin of currently

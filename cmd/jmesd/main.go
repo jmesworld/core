@@ -3,20 +3,22 @@ package main
 import (
 	"os"
 
-	"cosmossdk.io/log"
-
+	"github.com/cosmos/cosmos-sdk/server"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 
-	"github.com/jmesworld/core/v17/app"
-	"github.com/jmesworld/core/v17/cmd/jmesd/cmd"
+	jmesapp "github.com/jmesworld/core/v2/app"
 )
 
 func main() {
-	app.SetAddressPrefixes()
-	rootCmd, _ := cmd.NewRootCmd()
+	rootCmd, _ := NewRootCmd()
 
-	if err := svrcmd.Execute(rootCmd, "JMESD", app.DefaultNodeHome); err != nil {
-		log.NewLogger(rootCmd.OutOrStderr()).Error("failure when running app", "err", err)
-		os.Exit(1)
+	if err := svrcmd.Execute(rootCmd, "", jmesapp.DefaultNodeHome); err != nil {
+		switch e := err.(type) {
+		case server.ErrorCode:
+			os.Exit(e.Code)
+
+		default:
+			os.Exit(1)
+		}
 	}
 }

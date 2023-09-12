@@ -1,11 +1,12 @@
 package bindings
 
 import (
+	"github.com/CosmWasm/wasmd/x/wasm"
+
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-
-	tokenfactorykeeper "github.com/jmesworld/core/v17/x/tokenfactory/keeper"
+	tokenfactorykeeper "github.com/jmesworld/core/v2/x/tokenfactory/keeper"
 )
 
 func RegisterCustomPlugins(
@@ -21,7 +22,7 @@ func RegisterCustomPlugins(
 		CustomMessageDecorator(bank, tokenFactory),
 	)
 
-	return []wasmkeeper.Option{
+	return []wasm.Option{
 		queryPluginOpt,
 		messengerDecoratorOpt,
 	}

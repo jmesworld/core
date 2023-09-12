@@ -1,52 +1,117 @@
-# docker build . -t jmesworld/core:latest
-# docker run --rm -it jmesworld/core:latest /bin/sh
-FROM golang:1.20-alpine AS go-builder
+# syntax=docker/dockerfile:1
 
-# this comes from standard alpine nightly file
-#  https://github.com/rust-lang/docker-rust-nightly/blob/master/alpine3.12/Dockerfile
-# with some changes to support our toolchain, etc
-SHELL ["/bin/sh", "-ecuxo", "pipefail"]
-# we probably want to default to latest and error
-# since this is predominantly for dev use
-# hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates build-base git
-# NOTE: add these to run with LEDGER_ENABLED=true
-# RUN apk add libusb-dev linux-headers
+ARG GO_VERSION="1.20"
+ARG ALPINE_VERSION="3.16"
+ARG BUILDPLATFORM=linux/amd64
+ARG BASE_IMAGE="golang:${GO_VERSION}-alpine${ALPINE_VERSION}"
+FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} as base
 
-WORKDIR /code
+###############################################################################
+# Builder
+###############################################################################
 
-# Download dependencies and CosmWasm libwasmvm if found.
-ADD go.mod go.sum ./
-RUN set -eux; \    
-    export ARCH=$(uname -m); \
-    WASM_VERSION=$(go list -m all | grep github.com/CosmWasm/wasmvm | awk '{print $2}'); \
-    if [ ! -z "${WASM_VERSION}" ]; then \
-      wget -O /lib/libwasmvm_muslc.a https://github.com/CosmWasm/wasmvm/releases/download/${WASM_VERSION}/libwasmvm_muslc.${ARCH}.a; \      
+FROM base as builder-stage-1
+
+ARG GIT_COMMIT
+ARG GIT_VERSION
+ARG BUILDPLATFORM
+ARG GOOS=linux \
+    GOARCH=amd64
+
+ENV GOOS=$GOOS \ 
+    GOARCH=$GOARCH
+
+# NOTE: add libusb-dev to run with LEDGER_ENABLED=true
+RUN set -eux &&\
+    apk update &&\
+    apk add --no-cache \
+    ca-certificates \
+    linux-headers \
+    build-base \
+    cmake \
+    git
+
+# install mimalloc for musl
+WORKDIR ${GOPATH}/src/mimalloc
+RUN set -eux &&\
+    git clone --depth 1 --branch v2.0.9 \
+        https://github.com/microsoft/mimalloc . &&\
+    mkdir -p build &&\
+    cd build &&\
+    cmake .. &&\
+    make -j$(nproc) &&\
+    make install
+
+
+# download dependencies to cache as layer
+WORKDIR ${GOPATH}/src/app
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/root/go/pkg/mod \
+    go mod download -x
+
+# Cosmwasm - Download correct libwasmvm version
+RUN set -eux &&\
+    WASMVM_VERSION=$(go list -m github.com/CosmWasm/wasmvm | cut -d ' ' -f 2) && \
+    WASMVM_DOWNLOADS="https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}"; \
+    wget ${WASMVM_DOWNLOADS}/checksums.txt -O /tmp/checksums.txt; \
+    if [ ${BUILDPLATFORM} = "linux/amd64" ]; then \
+        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.x86_64.a"; \
+    elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
+        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
+    # elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
+    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    # elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
+    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    else \
+        echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
+        exit 1; \
     fi; \
-    go mod download;
+    wget ${WASMVM_URL} -O /lib/libwasmvm_muslc.a; \
+    CHECKSUM=`sha256sum /lib/libwasmvm_muslc.a | cut -d" " -f1`; \
+    grep ${CHECKSUM} /tmp/checksums.txt; \
+    rm /tmp/checksums.txt 
 
-# Copy over code
-COPY . /code/
+###############################################################################
 
-# force it to use static lib (from above) not standard libgo_cosmwasm.so file
-# then log output of file /code/bin/jmesd
-# then ensure static linking
-RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
-  && file /code/bin/jmesd \
-  && echo "Ensuring binary is statically linked ..." \
-  && (file /code/bin/jmesd | grep "statically linked")
+FROM builder-stage-1 as builder-stage-2
 
-# --------------------------------------------------------
-FROM alpine:3.16
+ARG GOOS=linux \
+    GOARCH=amd64
 
-COPY --from=go-builder /code/bin/jmesd /usr/bin/jmesd
+ENV GOOS=$GOOS \ 
+    GOARCH=$GOARCH
 
-COPY docker/* /opt/
-RUN chmod +x /opt/*.sh
+# Copy the remaining files
+COPY . .
 
-WORKDIR /opt
+# Build app binary
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/root/go/pkg/mod \
+    go install \
+        -mod=readonly \
+        -tags "netgo,muslc" \
+        -ldflags " \
+            -w -s -linkmode=external -extldflags \
+            '-L/go/src/mimalloc/build -lmimalloc -Wl,-z,muldefs -static' \
+            -X github.com/cosmos/cosmos-sdk/version.Name='jmesd' \
+            -X github.com/cosmos/cosmos-sdk/version.AppName='jmesd' \
+            -X github.com/cosmos/cosmos-sdk/version.Version=${GIT_VERSION} \
+            -X github.com/cosmos/cosmos-sdk/version.Commit=${GIT_COMMIT} \
+            -X github.com/cosmos/cosmos-sdk/version.BuildTags='netgo,muslc' \
+        " \
+        -trimpath \
+        ./...
 
-# rest server, tendermint p2p, tendermint rpc
-EXPOSE 1317 26656 26657
+################################################################################
 
-CMD ["/usr/bin/jmesd", "version"]
+FROM alpine:${ALPINE_VERSION} as jmes-core
+
+COPY --from=builder-stage-2 /go/bin/jmesd /usr/local/bin/jmesd
+
+RUN addgroup -g 1000 jmes && \
+    adduser -u 1000 -G jmes -D -h /app jmes
+
+WORKDIR /app
+
+CMD ["jmesd", "--home", "/app", "start"]

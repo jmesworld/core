@@ -6,8 +6,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 
-	bindingstypes "github.com/jmesworld/core/v17/x/tokenfactory/bindings/types"
-	tokenfactorykeeper "github.com/jmesworld/core/v17/x/tokenfactory/keeper"
+	bindingstypes "github.com/jmesworld/core/v2/x/tokenfactory/bindings/types"
+	tokenfactorykeeper "github.com/jmesworld/core/v2/x/tokenfactory/keeper"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 type QueryPlugin struct {
@@ -34,8 +35,13 @@ func (qp QueryPlugin) GetDenomAdmin(ctx sdk.Context, denom string) (*bindingstyp
 
 func (qp QueryPlugin) GetDenomsByCreator(ctx sdk.Context, creator string) (*bindingstypes.DenomsByCreatorResponse, error) {
 	// TODO: validate creator address
-	denoms := qp.tokenFactoryKeeper.GetDenomsFromCreator(ctx, creator)
-	return &bindingstypes.DenomsByCreatorResponse{Denoms: denoms}, nil
+	res, err := qp.tokenFactoryKeeper.DenomsFromCreator(ctx, &types.QueryDenomsFromCreatorRequest{
+		Creator: creator,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &bindingstypes.DenomsByCreatorResponse{Denoms: res.Denoms}, nil
 }
 
 func (qp QueryPlugin) GetMetadata(ctx sdk.Context, denom string) (*bindingstypes.MetadataResponse, error) {
