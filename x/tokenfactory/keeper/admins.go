@@ -1,11 +1,8 @@
 package keeper
 
 import (
-	"github.com/cosmos/gogoproto/proto"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 // GetAuthorityMetadata returns the authority metadata for a specific denom
@@ -13,7 +10,7 @@ func (k Keeper) GetAuthorityMetadata(ctx sdk.Context, denom string) (types.Denom
 	bz := k.GetDenomPrefixStore(ctx, denom).Get([]byte(types.DenomAuthorityMetadataKey))
 
 	metadata := types.DenomAuthorityMetadata{}
-	err := proto.Unmarshal(bz, &metadata)
+	err := k.cdc.Unmarshal(bz, &metadata)
 	if err != nil {
 		return types.DenomAuthorityMetadata{}, err
 	}
@@ -29,7 +26,7 @@ func (k Keeper) setAuthorityMetadata(ctx sdk.Context, denom string, metadata typ
 
 	store := k.GetDenomPrefixStore(ctx, denom)
 
-	bz, err := proto.Marshal(&metadata)
+	bz, err := k.cdc.Marshal(&metadata)
 	if err != nil {
 		return err
 	}

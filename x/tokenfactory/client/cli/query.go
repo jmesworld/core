@@ -1,14 +1,16 @@
 package cli
 
 import (
-	"fmt"
 
-	"github.com/spf13/cobra"
+	// "strings"
+
+	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/cobra"
 
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

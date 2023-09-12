@@ -3,55 +3,66 @@ package keeper_test
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
-func (suite *KeeperTestSuite) TestGenesis() {
+func (s *KeeperTestSuite) TestGenesis() {
 	genesisState := types.GenesisState{
 		FactoryDenoms: []types.GenesisDenom{
 			{
-				Denom: "factory/jmes1t7egva48prqmzl59x5ngv4zx0dtrwewcmjwfym/bitcoin",
+				Denom: "factory/jmes13s4gwzxv6dycfctvddfuy6r3zm7d6zklynzzj5/bitcoin",
 				AuthorityMetadata: types.DenomAuthorityMetadata{
-					Admin: "jmes1t7egva48prqmzl59x5ngv4zx0dtrwewcmjwfym",
+					Admin: "jmes13s4gwzxv6dycfctvddfuy6r3zm7d6zklynzzj5",
 				},
 			},
 			{
-				Denom: "factory/jmes1t7egva48prqmzl59x5ngv4zx0dtrwewcmjwfym/diff-admin",
+				Denom: "factory/jmes13s4gwzxv6dycfctvddfuy6r3zm7d6zklynzzj5/diff-admin",
 				AuthorityMetadata: types.DenomAuthorityMetadata{
-					Admin: "jmes15czt5nhlnvayqq37xun9s9yus0d6y26dsvkcna",
+					Admin: "jmes16jpsrgl423fqg6n0e9edllew9z0gm7rhl5300u",
 				},
 			},
 			{
-				Denom: "factory/jmes1t7egva48prqmzl59x5ngv4zx0dtrwewcmjwfym/litecoin",
+				Denom: "factory/jmes13s4gwzxv6dycfctvddfuy6r3zm7d6zklynzzj5/litecoin",
 				AuthorityMetadata: types.DenomAuthorityMetadata{
-					Admin: "jmes1t7egva48prqmzl59x5ngv4zx0dtrwewcmjwfym",
+					Admin: "jmes13s4gwzxv6dycfctvddfuy6r3zm7d6zklynzzj5",
 				},
 			},
 		},
 	}
 
-	suite.SetupTestForInitGenesis()
-	app := suite.App
+	app := s.App
 
 	// Test both with bank denom metadata set, and not set.
 	for i, denom := range genesisState.FactoryDenoms {
 		// hacky, sets bank metadata to exist if i != 0, to cover both cases.
 		if i != 0 {
-			app.AppKeepers.BankKeeper.SetDenomMetaData(suite.Ctx, banktypes.Metadata{Base: denom.GetDenom()})
+			app.BankKeeper.SetDenomMetaData(s.Ctx, banktypes.Metadata{Base: denom.GetDenom(), Display: "test"})
 		}
 	}
 
-	if err := app.AppKeepers.TokenFactoryKeeper.SetParams(suite.Ctx, types.Params{DenomCreationFee: sdk.Coins{sdk.NewInt64Coin("stake", 100)}}); err != nil {
-		panic(err)
-	}
-	app.AppKeepers.TokenFactoryKeeper.InitGenesis(suite.Ctx, genesisState)
+	// check before initGenesis that the module account is nil
+	tokenfactoryModuleAccount := app.AccountKeeper.GetAccount(s.Ctx, app.AccountKeeper.GetModuleAddress(types.ModuleName))
+	s.Require().Nil(tokenfactoryModuleAccount)
+
+	app.TokenFactoryKeeper.SetParams(s.Ctx, types.Params{DenomCreationFee: sdk.Coins{sdk.NewInt64Coin("uosmo", 100)}})
+	app.TokenFactoryKeeper.InitGenesis(s.Ctx, genesisState)
 
 	// check that the module account is now initialized
-	tokenfactoryModuleAccount := app.AppKeepers.AccountKeeper.GetAccount(suite.Ctx, app.AppKeepers.AccountKeeper.GetModuleAddress(types.ModuleName))
-	suite.Require().NotNil(tokenfactoryModuleAccount)
+	tokenfactoryModuleAccount = app.AccountKeeper.GetAccount(s.Ctx, app.AccountKeeper.GetModuleAddress(types.ModuleName))
+	s.Require().NotNil(tokenfactoryModuleAccount)
 
-	exportedGenesis := app.AppKeepers.TokenFactoryKeeper.ExportGenesis(suite.Ctx)
-	suite.Require().NotNil(exportedGenesis)
-	suite.Require().Equal(genesisState, *exportedGenesis)
+	exportedGenesis := app.TokenFactoryKeeper.ExportGenesis(s.Ctx)
+	s.Require().NotNil(exportedGenesis)
+	s.Require().Equal(genesisState, *exportedGenesis)
+
+	app.BankKeeper.SetParams(s.Ctx, banktypes.DefaultParams())
+	app.BankKeeper.InitGenesis(s.Ctx, app.BankKeeper.ExportGenesis(s.Ctx))
+	for i, denom := range genesisState.FactoryDenoms {
+		// hacky, check whether bank metadata is not replaced if i != 0, to cover both cases.
+		if i != 0 {
+			metadata, found := app.BankKeeper.GetDenomMetaData(s.Ctx, denom.GetDenom())
+			s.Require().True(found)
+			s.Require().Equal(metadata, banktypes.Metadata{Base: denom.GetDenom(), Display: "test"})
+		}
+	}
 }

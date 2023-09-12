@@ -2,19 +2,21 @@ package types
 
 import (
 	errorsmod "cosmossdk.io/errors"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
+// constants
 const (
-	TypeMsgCreateDenom      = "create_denom"
-	TypeMsgMint             = "tf_mint"
-	TypeMsgBurn             = "tf_burn"
-	TypeMsgForceTransfer    = "force_transfer"
-	TypeMsgChangeAdmin      = "change_admin"
-	TypeMsgSetDenomMetadata = "set_denom_metadata"
+	TypeMsgCreateDenom       = "create_denom"
+	TypeMsgMint              = "tf_mint"
+	TypeMsgBurn              = "tf_burn"
+	TypeMsgForceTransfer     = "force_transfer"
+	TypeMsgChangeAdmin       = "change_admin"
+	TypeMsgSetDenomMetadata  = "set_denom_metadata"
+	TypeMsgSetBeforeSendHook = "set_before_send_hook"
+	TypeMsgUpdateParams      = "update_params"
 )
 
 var _ sdk.Msg = &MsgCreateDenom{}
@@ -48,6 +50,7 @@ func (m MsgCreateDenom) GetSignBytes() []byte {
 }
 
 func (m MsgCreateDenom) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
@@ -78,13 +81,6 @@ func (m MsgMint) ValidateBasic() error {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid sender address (%s)", err)
 	}
 
-	if m.MintToAddress != "" {
-		_, err = sdk.AccAddressFromBech32(m.MintToAddress)
-		if err != nil {
-			return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid mint to address (%s)", err)
-		}
-	}
-
 	if !m.Amount.IsValid() || m.Amount.Amount.Equal(sdk.ZeroInt()) {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, m.Amount.String())
 	}
@@ -97,6 +93,7 @@ func (m MsgMint) GetSignBytes() []byte {
 }
 
 func (m MsgMint) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
@@ -132,13 +129,6 @@ func (m MsgBurn) ValidateBasic() error {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, m.Amount.String())
 	}
 
-	if m.BurnFromAddress != "" {
-		_, err = sdk.AccAddressFromBech32(m.BurnFromAddress)
-		if err != nil {
-			return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid burn from address (%s)", err)
-		}
-	}
-
 	return nil
 }
 
@@ -147,6 +137,7 @@ func (m MsgBurn) GetSignBytes() []byte {
 }
 
 func (m MsgBurn) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
@@ -173,11 +164,11 @@ func (m MsgForceTransfer) ValidateBasic() error {
 
 	_, err = sdk.AccAddressFromBech32(m.TransferFromAddress)
 	if err != nil {
-		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid from address (%s)", err)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid address (%s)", err)
 	}
 	_, err = sdk.AccAddressFromBech32(m.TransferToAddress)
 	if err != nil {
-		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid to address (%s)", err)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid address (%s)", err)
 	}
 
 	if !m.Amount.IsValid() {
@@ -192,6 +183,7 @@ func (m MsgForceTransfer) GetSignBytes() []byte {
 }
 
 func (m MsgForceTransfer) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
@@ -233,6 +225,7 @@ func (m MsgChangeAdmin) GetSignBytes() []byte {
 }
 
 func (m MsgChangeAdmin) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
@@ -273,28 +266,90 @@ func (m MsgSetDenomMetadata) GetSignBytes() []byte {
 }
 
 func (m MsgSetDenomMetadata) GetSigners() []sdk.AccAddress {
+	/* #nosec */
+	sender, _ := sdk.AccAddressFromBech32(m.Sender)
+	return []sdk.AccAddress{sender}
+}
+
+var _ sdk.Msg = &MsgSetBeforeSendHook{}
+
+// NewMsgSetBeforeSendHook creates a message to set a new before send hook
+func NewMsgSetBeforeSendHook(sender string, denom string, cosmwasmAddress string) *MsgSetBeforeSendHook {
+	return &MsgSetBeforeSendHook{
+		Sender:          sender,
+		Denom:           denom,
+		CosmwasmAddress: cosmwasmAddress,
+	}
+}
+
+func (m MsgSetBeforeSendHook) Route() string { return RouterKey }
+func (m MsgSetBeforeSendHook) Type() string  { return TypeMsgSetBeforeSendHook }
+func (m MsgSetBeforeSendHook) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid sender address (%s)", err)
+	}
+
+	if m.CosmwasmAddress != "" {
+		_, err = sdk.AccAddressFromBech32(m.CosmwasmAddress)
+		if err != nil {
+			return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid cosmwasm contract address (%s)", err)
+		}
+	}
+
+	_, _, err = DeconstructDenom(m.Denom)
+	if err != nil {
+		return ErrInvalidDenom
+	}
+
+	return nil
+}
+
+func (m MsgSetBeforeSendHook) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+func (m MsgSetBeforeSendHook) GetSigners() []sdk.AccAddress {
+	/* #nosec */
 	sender, _ := sdk.AccAddressFromBech32(m.Sender)
 	return []sdk.AccAddress{sender}
 }
 
 var _ sdk.Msg = &MsgUpdateParams{}
 
-// GetSignBytes implements the LegacyMsg interface.
-func (m MsgUpdateParams) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+func NewMsgUpdateParams(authority string, params Params) *MsgUpdateParams {
+	return &MsgUpdateParams{
+		authority,
+		params,
+	}
 }
 
-// GetSigners returns the expected signers for a MsgUpdateParams message.
-func (m *MsgUpdateParams) GetSigners() []sdk.AccAddress {
-	addr, _ := sdk.AccAddressFromBech32(m.Authority)
-	return []sdk.AccAddress{addr}
-}
-
-// ValidateBasic does a sanity check on the provided data.
-func (m *MsgUpdateParams) ValidateBasic() error {
-	if _, err := sdk.AccAddressFromBech32(m.Authority); err != nil {
-		return errorsmod.Wrap(err, "invalid authority address")
+func (msg *MsgUpdateParams) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
+		return sdkerrors.Wrap(err, "invalid authority address")
 	}
 
-	return m.Params.Validate()
+	if err := msg.Params.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
+
+func (msg MsgUpdateParams) Route() string {
+	return sdk.MsgTypeURL(&msg)
+}
+
+func (msg MsgUpdateParams) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+}
+
+func (msg *MsgUpdateParams) GetSigners() []sdk.AccAddress {
+	signer, err := sdk.AccAddressFromBech32(msg.Authority)
+	if err != nil {
+		panic("Authority is not valid")
+	}
+	return []sdk.AccAddress{signer}
+}
+
+func (msg MsgUpdateParams) Type() string { return TypeMsgUpdateParams }

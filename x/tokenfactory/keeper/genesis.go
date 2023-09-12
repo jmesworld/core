@@ -3,7 +3,7 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 // InitGenesis initializes the tokenfactory module's state from a provided genesis
@@ -14,6 +14,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, genState types.GenesisState) {
 	if genState.Params.DenomCreationFee == nil {
 		genState.Params.DenomCreationFee = sdk.NewCoins()
 	}
+
 	if err := k.SetParams(ctx, genState.Params); err != nil {
 		panic(err)
 	}

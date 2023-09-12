@@ -3,12 +3,12 @@ package keeper
 import (
 	"context"
 
-	"cosmossdk.io/errors"
-
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
 )
 
 type msgServer struct {
@@ -18,16 +18,26 @@ type msgServer struct {
 // NewMsgServerImpl returns an implementation of the MsgServer interface
 // for the provided Keeper.
 func NewMsgServerImpl(keeper Keeper) types.MsgServer {
+	var _ authtypes.ModuleAccountI
+
 	return &msgServer{Keeper: keeper}
 }
 
 var _ types.MsgServer = msgServer{}
 
-func (server msgServer) CreateDenom(goCtx context.Context, msg *types.MsgCreateDenom) (*types.MsgCreateDenomResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+func (m msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {
+	if m.Keeper.GetAuthority() != msg.Authority {
+		return nil, sdkerrors.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", m.GetAuthority(), msg.Authority)
 	}
 
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	if err := m.SetParams(sdkCtx, msg.Params); err != nil {
+		return nil, err
+	}
+	return &types.MsgUpdateParamsResponse{}, nil
+}
+
+func (server msgServer) CreateDenom(goCtx context.Context, msg *types.MsgCreateDenom) (*types.MsgCreateDenomResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	denom, err := server.Keeper.CreateDenom(ctx, msg.Sender, msg.Subdenom)
@@ -100,8 +110,12 @@ func (server msgServer) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.
 
 	if msg.BurnFromAddress == "" {
 		msg.BurnFromAddress = msg.Sender
-	} else if !types.IsCapabilityEnabled(server.Keeper.enabledCapabilities, types.EnableBurnFrom) {
-		return nil, types.ErrCapabilityNotEnabled
+	}
+
+	accountI := server.Keeper.accountKeeper.GetAccount(ctx, sdk.AccAddress(msg.BurnFromAddress))
+	_, ok := accountI.(authtypes.ModuleAccountI)
+	if ok {
+		return nil, types.ErrBurnFromModuleAccount
 	}
 
 	err = server.Keeper.burnFrom(ctx, msg.Amount, msg.BurnFromAddress)
@@ -122,10 +136,6 @@ func (server msgServer) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.
 
 func (server msgServer) ForceTransfer(goCtx context.Context, msg *types.MsgForceTransfer) (*types.MsgForceTransferResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-
-	if !types.IsCapabilityEnabled(server.Keeper.enabledCapabilities, types.EnableForceTransfer) {
-		return nil, types.ErrCapabilityNotEnabled
-	}
 
 	authorityMetadata, err := server.Keeper.GetAuthorityMetadata(ctx, msg.Amount.GetDenom())
 	if err != nil {
@@ -183,10 +193,6 @@ func (server msgServer) ChangeAdmin(goCtx context.Context, msg *types.MsgChangeA
 func (server msgServer) SetDenomMetadata(goCtx context.Context, msg *types.MsgSetDenomMetadata) (*types.MsgSetDenomMetadataResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	if !types.IsCapabilityEnabled(server.Keeper.enabledCapabilities, types.EnableSetMetadata) {
-		return nil, types.ErrCapabilityNotEnabled
-	}
-
 	// Defense in depth validation of metadata
 	err := msg.Metadata.Validate()
 	if err != nil {
@@ -215,15 +221,30 @@ func (server msgServer) SetDenomMetadata(goCtx context.Context, msg *types.MsgSe
 	return &types.MsgSetDenomMetadataResponse{}, nil
 }
 
-func (server msgServer) UpdateParams(goCtx context.Context, req *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {
-	if server.authority != req.Authority {
-		return nil, errors.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", server.authority, req.Authority)
-	}
-
+func (server msgServer) SetBeforeSendHook(goCtx context.Context, msg *types.MsgSetBeforeSendHook) (*types.MsgSetBeforeSendHookResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	if err := server.SetParams(ctx, req.Params); err != nil {
+
+	authorityMetadata, err := server.Keeper.GetAuthorityMetadata(ctx, msg.Denom)
+	if err != nil {
 		return nil, err
 	}
 
-	return &types.MsgUpdateParamsResponse{}, nil
+	if msg.Sender != authorityMetadata.GetAdmin() {
+		return nil, types.ErrUnauthorized
+	}
+
+	err = server.Keeper.setBeforeSendHook(ctx, msg.Denom, msg.CosmwasmAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.TypeMsgSetBeforeSendHook,
+			sdk.NewAttribute(types.AttributeDenom, msg.GetDenom()),
+			sdk.NewAttribute(types.AttributeBeforeSendHookAddress, msg.GetCosmwasmAddress()),
+		),
+	})
+
+	return &types.MsgSetBeforeSendHookResponse{}, nil
 }

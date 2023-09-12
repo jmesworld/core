@@ -4,64 +4,14 @@ import (
 	fmt "fmt"
 	"testing"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmesworld/core/v2/x/tokenfactory/types"
+
 	"github.com/cometbft/cometbft/crypto/ed25519"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-
-	"github.com/jmesworld/core/v17/x/tokenfactory/testhelpers"
-	"github.com/jmesworld/core/v17/x/tokenfactory/types"
 )
-
-// Test authz serialize and de-serializes for tokenfactory msg.
-func TestAuthzMsg(t *testing.T) {
-	t.Skip("TODO: figure out how to register authz interfaces for tests")
-	pk1 := ed25519.GenPrivKey().PubKey()
-	addr1 := sdk.AccAddress(pk1.Address()).String()
-	coin := sdk.NewCoin("denom", sdk.NewInt(1))
-
-	testCases := []struct {
-		name string
-		msg  sdk.Msg
-	}{
-		{
-			name: "MsgCreateDenom",
-			msg: &types.MsgCreateDenom{
-				Sender:   addr1,
-				Subdenom: "valoper1xyz",
-			},
-		},
-		{
-			name: "MsgBurn",
-			msg: &types.MsgBurn{
-				Sender: addr1,
-				Amount: coin,
-			},
-		},
-		{
-			name: "MsgMint",
-			msg: &types.MsgMint{
-				Sender: addr1,
-				Amount: coin,
-			},
-		},
-		{
-			name: "MsgChangeAdmin",
-			msg: &types.MsgChangeAdmin{
-				Sender:   addr1,
-				Denom:    "denom",
-				NewAdmin: "osmo1q8tq5qhrhw6t970egemuuwywhlhpnmdmts6xnu",
-			},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			testhelpers.TestMessageAuthzSerialization(t, tc.msg)
-		})
-	}
-}
 
 // TestMsgCreateDenom tests if valid/invalid create denom messages are properly validated/invalidated
 func TestMsgCreateDenom(t *testing.T) {

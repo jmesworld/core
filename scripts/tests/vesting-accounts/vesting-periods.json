@@ -1,0 +1,9 @@
+{ 
+	"start_time": -1,
+	"periods":[
+		{
+			"coins": "10000000ujmes",
+			"length_seconds": 60
+		}
+	]
+}
