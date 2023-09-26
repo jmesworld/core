@@ -188,6 +188,7 @@ replace (
 	// This is a temporary fix since the latest version updated some function signatures. To remove when updating to cosmos 47
 	github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/cosmos/cosmos-sdk => github.com/jmesworld/cosmos-sdk v0.47.1-jmes.2
+	github.com/cometbft/cometbft => github.com/jmesworld/cometbft v0.37.2-jmes.1
 	github.com/cosmos/ledger-cosmos-go => github.com/terra-money/ledger-terra-go v0.11.2
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
