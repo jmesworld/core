@@ -1020,7 +1020,7 @@ func (app *JMESApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) ab
 	//info2 := app.DistrKeeper.(ctx)
 
 	//governanceContractAddress := app.DistrKeeper.GetGovernanceContractAddress(ctx)
-	governanceContractAddress := ""
+	governanceContractAddress := "jmes12fykm2xhg5ces2vmf4q2aem8c958exv3v0wmvrspa8zucrdwjedsd3eex2"
 
 	app.Logger().Info("BeginBlocker", "now", now, "blockHeight", ctx.BlockHeight(), "governanceContractAddress", governanceContractAddress)
 
