@@ -16,3 +16,6 @@ heighliner*
 # emacs editor config
 \#*\#
 .\#*
+
+.DS_Store
+.idea
