@@ -790,8 +790,8 @@ github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGw
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/jmesworld/cometbft v0.37.2-jmes.2 h1:d2ufBIGtjRxCnkYSd97XI4sGaSFd6xgGpVmb+0wXtCs=
 github.com/jmesworld/cometbft v0.37.2-jmes.2/go.mod h1:Y2MMMN//O5K4YKd8ze4r9jmk4Y7h0ajqILXbH5JQFVs=
-github.com/jmesworld/cosmos-sdk v0.47.1-jmes.5 h1:334PL/a2WKQ8YSbA49cVrMQD5FUKpw9+0nIa2uiG+jw=
-github.com/jmesworld/cosmos-sdk v0.47.1-jmes.5/go.mod h1:/CZuTHL/+e3ajQUkPih+CxK07GZtgJzIV51aGbDLsNo=
+github.com/jmesworld/cosmos-sdk v0.47.1-jmes.7 h1:1GEUtKcYRc4mRv5c/9VJ1P6yiueKr+etsJihaebZyjI=
+github.com/jmesworld/cosmos-sdk v0.47.1-jmes.7/go.mod h1:/CZuTHL/+e3ajQUkPih+CxK07GZtgJzIV51aGbDLsNo=
 github.com/jmhodges/levigo v1.0.0 h1:q5EC36kV79HWeTBWsod3mG11EgStG3qArTKcvlksN1U=
 github.com/jmhodges/levigo v1.0.0/go.mod h1:Q6Qx+uH3RAqyK4rFQroq9RL7mdkABMcfhEI+nNuzMJQ=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
