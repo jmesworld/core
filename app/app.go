@@ -1092,7 +1092,7 @@ func (app *JMESApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci
 	res := app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 
 	// stake all vesting tokens
-	app.enforceStakingForVestingTokens(ctx, genesisState)
+	//app.enforceStakingForVestingTokens(ctx, genesisState)
 
 	return res
 }
