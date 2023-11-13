@@ -9,9 +9,9 @@ if [ "$clean_jmes" == "y" ]; then
     echo "Cleaned ~/.jmes/ directory."
 fi
 
-default_chain_id="jmes-namito"
+default_chain_id="jmes-picasso"
 
-read -p "Enter the chain-id: (default: $default_chain_id) " chain_id # jmes-namito
+read -p "Enter the chain-id: (default: $default_chain_id) " chain_id # jmes-picasso
 
 if [ -z "$chain_id" ]; then
     chain_id=$default_chain_id
@@ -39,19 +39,19 @@ fi
 commands=(
     "./jmesd init --chain-id=$chain_id $moniker"
     "./jmesd genesis add-genesis-account $moniker 0ujmes"
-    "./jmesd genesis add-genesis-account jmes1mr4gj98n2cy2fnnme87gwctv34axsc63vjhyn9 45000000000000ujmes --vesting-amount 45000000000000ujmes --vesting-unlock-percentage 0.045"
-
-    "./jmesd genesis add-genesis-account jmes1nm9rsr3yeuvvsdv3w2r7kqfjfa90tjwwd775rt 17000000000000ujmes --vesting-amount 17000000000000ujmes --vesting-unlock-percentage 0.017"
+    "./jmesd genesis add-genesis-account jmes1nm9rsr3yeuvvsdv3w2r7kqfjfa90tjwwd775rt 45000000000000ujmes --vesting-amount 45000000000000ujmes --vesting-unlock-percentage 0.045"
+    "./jmesd genesis add-genesis-account jmes1chdmjega46glmzmxyj8j63sr43m8h2ja2gp7x8 17000000000000ujmes --vesting-amount 17000000000000ujmes --vesting-unlock-percentage 0.017"
     "./jmesd genesis add-genesis-account jmes1v6nnc8f9jjpw309xm6zhj968vscgvld04gmhq0 17000000000000ujmes --vesting-amount 17000000000000ujmes --vesting-unlock-percentage 0.017"
-
     "./jmesd genesis add-genesis-account jmes12h9pe8v2pmqzec0lx8z5d6wsxkuell02nyzt70 16000000000000ujmes --vesting-amount 16000000000000ujmes --vesting-unlock-percentage 0.016"
-    "./jmesd genesis add-genesis-account jmes1jlwkusyhyr9l96mgkv25uytr6wcvqn3whs6kez 5000000000000ujmes --vesting-amount 5000000000000ujmes --vesting-unlock-percentage 0.005"
+
+    "./jmesd genesis add-genesis-account jmes1jlwkusyhyr9l96mgkv25uytr6wcvqn3whs6kez 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
+    "./jmesd genesis add-genesis-account jmes13hvwmvjcvym8p65x5lz37sc2rhcmvu2rdalx68 4000000000000ujmes --vesting-amount 4000000000000ujmes --vesting-unlock-percentage 0.004"
 
     "./jmesd genesis add-genesis-account jmes1afze5vvplveqkha063q7fu46dcvylu7nzdax99 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
     "./jmesd genesis add-genesis-account jmes1uyauwmjasmq3hqcvpjmlxm72l2yrfjjt5v0nww 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
     "./jmesd genesis add-genesis-account jmes1v6ht8shgvs645lvrjejqaknw6d2cgcsnhk98nl 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
 
-    "./jmesd genesis add-genesis-account jmes1pmcm6ag8hn7y6009q5e3q4dga9268epgxm2r6y 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
+    "./jmesd genesis add-genesis-account jmes19sdumskemmftgaxm9vctlsxhhua7mdz4qgl7rt 1000000000000ujmes --vesting-amount 1000000000000ujmes --vesting-unlock-percentage 0.001"
 
     "./jmesd genesis gentx $moniker 0ujmes --chain-id=$chain_id"
     "./jmesd genesis collect-gentxs"
