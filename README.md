@@ -8,16 +8,9 @@ Official Go implementation of the JMESWorld protocol
 
 ## Build dockerfile
 
-` docker buildx build  --build-arg TOOL_NODE_FLAGS="--max-old-space-size=8192 --max_semi_space_size=256" --platform linux/arm --push -t alexwerner/jmesworld-core .`
+` docker buildx build  --build-arg TOOL_NODE_FLAGS="--max-old-space-size=8192 --max_semi_space_size=256" --platform linux/arm --push -t jmesworld-core .`
 ## Run
 
-- ``
+Run `/cmd/jmesd/jmesd` with the following options:
 
-
-## Devnet as chainID=jmes-888
-
-On such setup, a faucet wallet will be filled.
-
-Address:   jmes137q2vzcu267afzr45crw9x0e97ykrx5t98z7n0
-Mnemonic: steel test mixed child detect symbol obtain rack rail lemon east prosper trap surround lunar green vessel vacuum month lunar brain parade strike fish  
-
+- `--chain-id` - Chain ID of the network to connect to
